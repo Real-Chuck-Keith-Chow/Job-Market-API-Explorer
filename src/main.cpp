@@ -86,11 +86,31 @@ int main() {
     std::cout << "Enter location (or press enter for all locations): ";
     std::getline(std::cin, location);
     
-    std::cout << "Enter minimum salary (0 for no filter): ";
-    std::string salary_input;
-    std::getline(std::cin, salary_input);
-    if (!salary_input.empty()) {
+    // In main.cpp - Replace the current salary input with this:
+
+std::cout << "Enter minimum salary (0 for no filter): ";
+std::string salary_input;
+std::getline(std::cin, salary_input);
+
+// Add input validation
+if (!salary_input.empty()) {
+    try {
         min_salary = std::stod(salary_input);
+        if (min_salary < 0) {
+            std::cout << "Warning: Negative salary converted to 0" << std::endl;
+            min_salary = 0;
+        }
+        if (min_salary > 1000000) { // Reasonable salary cap
+            std::cout << "Warning: Salary capped at 1,000,000" << std::endl;
+            min_salary = 1000000;
+        }
+    } catch (const std::exception& e) {
+        std::cout << "Invalid salary input '" << salary_input << "'. Using 0." << std::endl;
+        min_salary = 0;
+    }
+} else {
+    min_salary = 0;
+}
     }
     
     std::cout << "\nSearching for jobs..." << std::endl;
