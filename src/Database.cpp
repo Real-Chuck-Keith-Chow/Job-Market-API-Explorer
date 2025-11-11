@@ -334,6 +334,7 @@ bool Database::isJobExists(const std::string& job_id) {
     
     if (rc) {
         std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_close(db); // Add this! - Prevent memory leak
         return false;
     }
     
@@ -341,6 +342,12 @@ bool Database::isJobExists(const std::string& job_id) {
     sqlite3_stmt* stmt;
     
     rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_close(db); // Add this! - Prevent memory leak
+        return false;
+    }
+    
     sqlite3_bind_text(stmt, 1, job_id.c_str(), -1, SQLITE_TRANSIENT);
     
     bool exists = (sqlite3_step(stmt) == SQLITE_ROW);
