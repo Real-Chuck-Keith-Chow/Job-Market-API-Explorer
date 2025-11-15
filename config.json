@@ -1,0 +1,10 @@
+{
+    "adzuna_app_id": "your_adzuna_app_id_here",
+    "adzuna_app_key": "your_adzuna_app_key_here",
+    "github_jobs_url": "https://jobs.github.com/positions.json",
+    "database_path": "job_market.db",
+    "max_results": 50,
+    "cache_duration_minutes": 60,
+    "enable_logging": true,
+    "log_level": "info"
+}
