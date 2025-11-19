@@ -250,3 +250,82 @@ Location JobParser::parseLocation(const std::string& location_str) {
     
     return location;
 }
+// Add this function to JobParser.cpp
+bool JobParser::validateSalaryRange(double min_salary, double max_salary) {
+    // Check for valid salary range
+    if (min_salary < 0 || max_salary < 0) {
+        return false;
+    }
+    
+    // Max salary should be greater than or equal to min salary
+    if (max_salary > 0 && min_salary > max_salary) {
+        return false;
+    }
+    
+    // Reasonable salary limits (adjust based on currency/region)
+    const double MAX_REASONABLE_SALARY = 1000000.0; // $1 million
+    if (min_salary > MAX_REASONABLE_SALARY || max_salary > MAX_REASONABLE_SALARY) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Add this function to normalize salary ranges
+void JobParser::normalizeSalaryRange(double& min_salary, double& max_salary) {
+    // If both are 0, nothing to normalize
+    if (min_salary == 0 && max_salary == 0) {
+        return;
+    }
+    
+    // If min is 0 but max has value, set min to reasonable percentage of max
+    if (min_salary == 0 && max_salary > 0) {
+        min_salary = max_salary * 0.7; // Assume min is 70% of max
+    }
+    
+    // If max is 0 but min has value, set max to reasonable multiple of min
+    if (max_salary == 0 && min_salary > 0) {
+        max_salary = min_salary * 1.5; // Assume max is 150% of min
+    }
+    
+    // Ensure min <= max
+    if (min_salary > max_salary) {
+        std::swap(min_salary, max_salary);
+    }
+}
+
+// below detect salary outliers:
+bool JobParser::isSalaryOutlier(double salary, const std::vector<Job>& jobs) {
+    if (salary <= 0) return false;
+    
+    // Calculate average salary from jobs that have salaries
+    double total_salary = 0.0;
+    int count = 0;
+    
+    for (const auto& job : jobs) {
+        double job_avg = (job.salary_min + job.salary_max) / 2.0;
+        if (job_avg > 0) {
+            total_salary += job_avg;
+            count++;
+        }
+    }
+    
+    if (count == 0) return false;
+    
+    double average_salary = total_salary / count;
+    double standard_deviation = 0.0;
+    
+    // Calculate standard deviation
+    for (const auto& job : jobs) {
+        double job_avg = (job.salary_min + job.salary_max) / 2.0;
+        if (job_avg > 0) {
+            double diff = job_avg - average_salary;
+            standard_deviation += diff * diff;
+        }
+    }
+    
+    standard_deviation = std::sqrt(standard_deviation / count);
+    
+    // Consider outlier if more than 3 standard deviations from mean
+    return std::abs(salary - average_salary) > (3 * standard_deviation);
+}
