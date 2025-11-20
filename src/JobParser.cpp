@@ -3,6 +3,7 @@
 #include <regex>
 #include <map>
 #include <set>
+#include <cmath>  // ADD THIS for sqrt() and abs()
 
 std::vector<std::string> JobParser::extractTechnologies(const std::string& description) {
     std::vector<std::string> technologies;
@@ -250,6 +251,7 @@ Location JobParser::parseLocation(const std::string& location_str) {
     
     return location;
 }
+
 // Add this function to JobParser.cpp
 bool JobParser::validateSalaryRange(double min_salary, double max_salary) {
     // Check for valid salary range
@@ -294,7 +296,7 @@ void JobParser::normalizeSalaryRange(double& min_salary, double& max_salary) {
     }
 }
 
-// below detect salary outliers:
+// Add this function to detect salary outliers
 bool JobParser::isSalaryOutlier(double salary, const std::vector<Job>& jobs) {
     if (salary <= 0) return false;
     
@@ -328,4 +330,149 @@ bool JobParser::isSalaryOutlier(double salary, const std::vector<Job>& jobs) {
     
     // Consider outlier if more than 3 standard deviations from mean
     return std::abs(salary - average_salary) > (3 * standard_deviation);
+}
+
+// Calculate job quality score based on completeness and data quality
+double JobParser::calculateJobQualityScore(const Job& job) {
+    double score = 0.0;
+    int criteria_met = 0;
+    int total_criteria = 8;
+    
+    // Check title completeness
+    if (!job.title.empty() && job.title.length() > 5) {
+        score += 15.0;
+        criteria_met++;
+    }
+    
+    // Check company information
+    if (!job.company.display_name.empty()) {
+        score += 15.0;
+        criteria_met++;
+    }
+    
+    // Check location information
+    if (!job.location.display_name.empty()) {
+        score += 15.0;
+        criteria_met++;
+    }
+    
+    // Check salary information
+    if (job.salary_min > 0 || job.salary_max > 0) {
+        score += 20.0;
+        criteria_met++;
+        
+        // Bonus for complete salary range
+        if (job.salary_min > 0 && job.salary_max > 0 && validateSalaryRange(job.salary_min, job.salary_max)) {
+            score += 10.0;
+        }
+    }
+    
+    // Check job description
+    if (!job.description.empty() && job.description.length() > 50) {
+        score += 15.0;
+        criteria_met++;
+    }
+    
+    // Check technologies detected
+    auto technologies = extractTechnologies(job.description);
+    if (!technologies.empty()) {
+        score += 10.0;
+        criteria_met++;
+    }
+    
+    // Check redirect URL
+    if (!job.redirect_url.empty()) {
+        score += 5.0;
+        criteria_met++;
+    }
+    
+    // Check creation date
+    if (!job.created.empty()) {
+        score += 5.0;
+        criteria_met++;
+    }
+    
+    // Normalize score to 0-100 range
+    if (criteria_met > 0) {
+        score = (score / 100.0) * 100.0;
+    }
+    
+    return std::min(score, 100.0);
+}
+
+// Detect experience level from job title and description
+std::string JobParser::detectExperienceLevel(const Job& job) {
+    std::string title_lower = job.title;
+    std::string desc_lower = job.description;
+    std::transform(title_lower.begin(), title_lower.end(), title_lower.begin(), ::tolower);
+    std::transform(desc_lower.begin(), desc_lower.end(), desc_lower.begin(), ::tolower);
+    
+    // Keywords for different experience levels
+    std::vector<std::string> intern_keywords = {"intern", "internship", "student", "graduate", "entry level", "junior"};
+    std::vector<std::string> senior_keywords = {"senior", "sr.", "lead", "principal", "architect", "staff", "experienced"};
+    std::vector<std::string> manager_keywords = {"manager", "director", "head of", "vp", "vice president", "cto", "ceo"};
+    
+    // Check for manager level
+    for (const auto& keyword : manager_keywords) {
+        if (title_lower.find(keyword) != std::string::npos || desc_lower.find(keyword) != std::string::npos) {
+            return "Management";
+        }
+    }
+    
+    // Check for senior level
+    for (const auto& keyword : senior_keywords) {
+        if (title_lower.find(keyword) != std::string::npos || desc_lower.find(keyword) != std::string::npos) {
+            return "Senior";
+        }
+    }
+    
+    // Check for intern level
+    for (const auto& keyword : intern_keywords) {
+        if (title_lower.find(keyword) != std::string::npos || desc_lower.find(keyword) != std::string::npos) {
+            return "Entry Level";
+        }
+    }
+    
+    // Default to mid-level
+    return "Mid Level";
+}
+
+// Fix: Add missing implementation for technology aliases enhancement
+std::vector<std::string> JobParser::extractTechnologiesWithAliases(const std::string& description) {
+    auto technologies = extractTechnologies(description);
+    
+    // Add additional technology aliases and variations
+    std::string desc_lower = description;
+    std::transform(desc_lower.begin(), desc_lower.end(), desc_lower.begin(), ::tolower);
+    
+    // Enhanced technology detection with more aliases
+    std::vector<std::pair<std::string, std::string>> enhanced_techs = {
+        {"next.js", "Next.js"}, {"nextjs", "Next.js"},
+        {"vue.js", "Vue.js"}, {"vuejs", "Vue.js"},
+        {"angular.js", "AngularJS"}, {"angularjs", "AngularJS"},
+        {"express.js", "Express.js"}, {"expressjs", "Express.js"},
+        {"nest.js", "Nest.js"}, {"nestjs", "Nest.js"},
+        {"graphql", "GraphQL"}, {"gql", "GraphQL"},
+        {"rest api", "REST API"}, {"restful", "REST API"},
+        {"microservices", "Microservices"}, {"microservice", "Microservices"},
+        {"serverless", "Serverless"}, {"lambda", "AWS Lambda"},
+        {"kubernetes", "Kubernetes"}, {"k8s", "Kubernetes"},
+        {"terraform", "Terraform"}, {"tf", "Terraform"},
+        {"ansible", "Ansible"}, {"puppet", "Puppet"}, {"chef", "Chef"}
+    };
+    
+    for (const auto& [alias, tech_name] : enhanced_techs) {
+        if (desc_lower.find(alias) != std::string::npos) {
+            // Check if already added
+            if (std::find(technologies.begin(), technologies.end(), tech_name) == technologies.end()) {
+                technologies.push_back(tech_name);
+            }
+        }
+    }
+    
+    // Remove duplicates
+    std::sort(technologies.begin(), technologies.end());
+    technologies.erase(std::unique(technologies.begin(), technologies.end()), technologies.end());
+    
+    return technologies;
 }
