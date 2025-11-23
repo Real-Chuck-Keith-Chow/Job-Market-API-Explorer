@@ -11,6 +11,7 @@ class JobParser {
 public:
     // Technology analysis
     static std::vector<std::string> extractTechnologies(const std::string& description);
+    static std::vector<std::string> extractTechnologiesWithAliases(const std::string& description);
     static std::string categorizeJob(const Job& job);
     
     // Salary processing
@@ -27,11 +28,30 @@ public:
     static std::string normalizeCompanyName(const std::string& company_name);
     static Location parseLocation(const std::string& location_str);
     
-    // Job quality scoring (new utility function)
+    // Job quality and experience analysis
     static double calculateJobQualityScore(const Job& job);
-    
-    // Experience level detection (new utility function)
     static std::string detectExperienceLevel(const Job& job);
+    
+    // Advanced ranking and recommendations
+    static std::vector<Job> rankJobsByRelevance(const std::vector<Job>& jobs,
+                                               const std::string& user_skills,
+                                               const std::string& preferred_location = "",
+                                               double desired_salary = 0,
+                                               const std::vector<std::string>& preferred_technologies = {});
+    
+    static std::vector<Job> findSimilarJobs(const Job& reference_job,
+                                           const std::vector<Job>& all_jobs,
+                                           int max_results = 10);
+
+private:
+    // Helper functions for ranking algorithms
+    static double calculateTechnologyMatchScore(const Job& job,
+                                               const std::string& user_skills,
+                                               const std::vector<std::string>& preferred_technologies);
+    
+    static double calculateLocationMatchScore(const Job& job, const std::string& preferred_location);
+    
+    static double calculateSalaryMatchScore(const Job& job, double desired_salary);
 };
 
 #endif
