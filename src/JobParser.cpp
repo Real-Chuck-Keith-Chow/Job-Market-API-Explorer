@@ -674,4 +674,331 @@ double JobParser::calculateSalaryMatchScore(const Job& job, double desired_salar
     if (salary_ratio >= 0.6) return 4.0;  // Within 40% below desired
     
     return 2.0; // More than 40% below desired
+
+
+    // Add this function to JobParser.cpp - Comprehensive market analytics
+JobMarketAnalytics JobParser::generateMarketAnalytics(const std::vector<Job>& jobs, int days_back) {
+    JobMarketAnalytics analytics;
+    
+    if (jobs.empty()) {
+        return analytics;
+    }
+    
+    // Basic counts
+    analytics.total_jobs = jobs.size();
+    analytics.unique_companies = getUniqueCompanies(jobs);
+    analytics.unique_locations = getUniqueLocations(jobs);
+    
+    // Salary analytics
+    calculateSalaryAnalytics(analytics, jobs);
+    
+    // Technology trends
+    analytics.technology_trends = analyzeTechnologyTrends(jobs);
+    analytics.hot_technologies = getHotTechnologies(analytics.technology_trends, 10);
+    
+    // Job type distribution
+    analytics.job_type_distribution = getJobTypeDistribution(jobs);
+    
+    // Experience level distribution
+    analytics.experience_distribution = getExperienceDistribution(jobs);
+    
+    // Company analytics
+    analytics.top_companies = getTopCompaniesByJobCount(jobs, 10);
+    analytics.company_size_distribution = getCompanySizeDistribution(jobs);
+    
+    // Location analytics
+    analytics.location_distribution = getLocationDistribution(jobs);
+    analytics.remote_ratio = calculateRemoteRatio(jobs);
+    
+    // Temporal analytics
+    analytics.daily_trends = getDailyJobTrends(jobs, days_back);
+    analytics.growth_rate = calculateGrowthRate(analytics.daily_trends);
+    
+    // Quality metrics
+    analytics.average_quality_score = calculateAverageQualityScore(jobs);
+    analytics.high_quality_jobs = countHighQualityJobs(jobs);
+    
+    // Market health score
+    analytics.market_health_score = calculateMarketHealthScore(analytics);
+    
+    return analytics;
+}
+
+// Helper function to get unique companies
+std::set<std::string> JobParser::getUniqueCompanies(const std::vector<Job>& jobs) {
+    std::set<std::string> companies;
+    for (const auto& job : jobs) {
+        if (!job.company.display_name.empty()) {
+            companies.insert(normalizeCompanyName(job.company.display_name));
+        }
+    }
+    return companies;
+}
+
+// Helper function to get unique locations
+std::set<std::string> JobParser::getUniqueLocations(const std::vector<Job>& jobs) {
+    std::set<std::string> locations;
+    for (const auto& job : jobs) {
+        if (!job.location.display_name.empty()) {
+            locations.insert(job.location.display_name);
+        }
+    }
+    return locations;
+}
+
+// Calculate comprehensive salary analytics
+void JobParser::calculateSalaryAnalytics(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    double total_min = 0.0, total_max = 0.0;
+    int salary_count = 0;
+    std::vector<double> all_salaries;
+    
+    for (const auto& job : jobs) {
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            total_min += job.salary_min;
+            total_max += job.salary_max;
+            all_salaries.push_back(avg_salary);
+            salary_count++;
+        }
+    }
+    
+    if (salary_count > 0) {
+        analytics.average_salary_min = total_min / salary_count;
+        analytics.average_salary_max = total_max / salary_count;
+        analytics.average_salary = (analytics.average_salary_min + analytics.average_salary_max) / 2.0;
+        
+        // Calculate salary percentiles
+        std::sort(all_salaries.begin(), all_salaries.end());
+        analytics.salary_25th_percentile = calculatePercentile(all_salaries, 0.25);
+        analytics.salary_50th_percentile = calculatePercentile(all_salaries, 0.5);
+        analytics.salary_75th_percentile = calculatePercentile(all_salaries, 0.75);
+        analytics.salary_90th_percentile = calculatePercentile(all_salaries, 0.9);
+        
+        analytics.jobs_with_salary = salary_count;
+        analytics.salary_reporting_rate = static_cast<double>(salary_count) / jobs.size() * 100.0;
+    }
+}
+
+// Get top technologies by count
+std::vector<std::pair<std::string, int>> JobParser::getHotTechnologies(const std::map<std::string, int>& tech_trends, int top_n) {
+    std::vector<std::pair<std::string, int>> sorted_techs(tech_trends.begin(), tech_trends.end());
+    
+    std::sort(sorted_techs.begin(), sorted_techs.end(),
+              [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) {
+                  return a.second > b.second;
+              });
+    
+    if (sorted_techs.size() > top_n) {
+        sorted_techs.resize(top_n);
+    }
+    
+    return sorted_techs;
+}
+
+// Get job type distribution
+std::map<std::string, int> JobParser::getJobTypeDistribution(const std::vector<Job>& jobs) {
+    std::map<std::string, int> distribution;
+    for (const auto& job : jobs) {
+        std::string category = categorizeJob(job);
+        distribution[category]++;
+    }
+    return distribution;
+}
+
+// Get experience level distribution
+std::map<std::string, int> JobParser::getExperienceDistribution(const std::vector<Job>& jobs) {
+    std::map<std::string, int> distribution;
+    for (const auto& job : jobs) {
+        std::string level = detectExperienceLevel(job);
+        distribution[level]++;
+    }
+    return distribution;
+}
+
+// Get top companies by job count
+std::vector<std::pair<std::string, int>> JobParser::getTopCompaniesByJobCount(const std::vector<Job>& jobs, int top_n) {
+    std::map<std::string, int> company_counts;
+    for (const auto& job : jobs) {
+        if (!job.company.display_name.empty()) {
+            std::string normalized_name = normalizeCompanyName(job.company.display_name);
+            company_counts[normalized_name]++;
+        }
+    }
+    
+    std::vector<std::pair<std::string, int>> sorted_companies(company_counts.begin(), company_counts.end());
+    std::sort(sorted_companies.begin(), sorted_companies.end(),
+              [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) {
+                  return a.second > b.second;
+              });
+    
+    if (sorted_companies.size() > top_n) {
+        sorted_companies.resize(top_n);
+    }
+    
+    return sorted_companies;
+}
+
+// Get company size distribution (estimated)
+std::map<std::string, int> JobParser::getCompanySizeDistribution(const std::vector<Job>& jobs) {
+    std::map<std::string, int> size_distribution = {
+        {"Startup (1-9)", 0},
+        {"Small (10-49)", 0},
+        {"Medium (50-199)", 0},
+        {"Large (200-499)", 0},
+        {"Enterprise (500+)", 0}
+    };
+    
+    std::map<std::string, int> company_job_counts;
+    for (const auto& job : jobs) {
+        if (!job.company.display_name.empty()) {
+            std::string normalized_name = normalizeCompanyName(job.company.display_name);
+            company_job_counts[normalized_name]++;
+        }
+    }
+    
+    for (const auto& [company, count] : company_job_counts) {
+        std::string size_category;
+        if (count >= 500) size_category = "Enterprise (500+)";
+        else if (count >= 200) size_category = "Large (200-499)";
+        else if (count >= 50) size_category = "Medium (50-199)";
+        else if (count >= 10) size_category = "Small (10-49)";
+        else size_category = "Startup (1-9)";
+        
+        size_distribution[size_category]++;
+    }
+    
+    return size_distribution;
+}
+
+// Get location distribution
+std::map<std::string, int> JobParser::getLocationDistribution(const std::vector<Job>& jobs) {
+    std::map<std::string, int> distribution;
+    for (const auto& job : jobs) {
+        std::string location = job.location.display_name.empty() ? "Unknown" : job.location.display_name;
+        distribution[location]++;
+    }
+    return distribution;
+}
+
+// Calculate remote work ratio
+double JobParser::calculateRemoteRatio(const std::vector<Job>& jobs) {
+    int remote_count = 0;
+    for (const auto& job : jobs) {
+        std::string location_lower = job.location.display_name;
+        std::transform(location_lower.begin(), location_lower.end(), location_lower.begin(), ::tolower);
+        if (location_lower.find("remote") != std::string::npos ||
+            location_lower.find("anywhere") != std::string::npos ||
+            location_lower.find("distributed") != std::string::npos) {
+            remote_count++;
+        }
+    }
+    return static_cast<double>(remote_count) / jobs.size() * 100.0;
+}
+
+// Get daily job posting trends
+std::map<std::string, int> JobParser::getDailyJobTrends(const std::vector<Job>& jobs, int days_back) {
+    std::map<std::string, int> daily_trends;
+    // Simplified implementation - in real scenario, you'd parse dates
+    for (const auto& job : jobs) {
+        std::string date = extractDate(job.created);
+        if (!date.empty()) {
+            daily_trends[date]++;
+        }
+    }
+    return daily_trends;
+}
+
+// Calculate market growth rate
+double JobParser::calculateGrowthRate(const std::map<std::string, int>& daily_trends) {
+    if (daily_trends.size() < 2) return 0.0;
+    
+    auto it = daily_trends.begin();
+    int first_day = it->second;
+    std::advance(it, daily_trends.size() - 1);
+    int last_day = it->second;
+    
+    if (first_day == 0) return 0.0;
+    
+    return static_cast<double>(last_day - first_day) / first_day * 100.0;
+}
+
+// Calculate average job quality score
+double JobParser::calculateAverageQualityScore(const std::vector<Job>& jobs) {
+    double total_score = 0.0;
+    int count = 0;
+    for (const auto& job : jobs) {
+        double score = calculateJobQualityScore(job);
+        if (score > 0) {
+            total_score += score;
+            count++;
+        }
+    }
+    return count > 0 ? total_score / count : 0.0;
+}
+
+// Count high quality jobs (score >= 80)
+int JobParser::countHighQualityJobs(const std::vector<Job>& jobs) {
+    int count = 0;
+    for (const auto& job : jobs) {
+        if (calculateJobQualityScore(job) >= 80.0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Calculate overall market health score
+double JobParser::calculateMarketHealthScore(const JobMarketAnalytics& analytics) {
+    double score = 0.0;
+    
+    // Job volume factor (30%)
+    if (analytics.total_jobs >= 1000) score += 30.0;
+    else if (analytics.total_jobs >= 500) score += 25.0;
+    else if (analytics.total_jobs >= 200) score += 20.0;
+    else if (analytics.total_jobs >= 100) score += 15.0;
+    else score += 10.0;
+    
+    // Salary factor (25%)
+    if (analytics.average_salary >= 100000) score += 25.0;
+    else if (analytics.average_salary >= 80000) score += 20.0;
+    else if (analytics.average_salary >= 60000) score += 15.0;
+    else if (analytics.average_salary > 0) score += 10.0;
+    
+    // Company diversity factor (20%)
+    if (analytics.unique_companies.size() >= 100) score += 20.0;
+    else if (analytics.unique_companies.size() >= 50) score += 15.0;
+    else if (analytics.unique_companies.size() >= 20) score += 10.0;
+    else score += 5.0;
+    
+    // Job quality factor (15%)
+    if (analytics.average_quality_score >= 80.0) score += 15.0;
+    else if (analytics.average_quality_score >= 60.0) score += 12.0;
+    else if (analytics.average_quality_score >= 40.0) score += 8.0;
+    else score += 4.0;
+    
+    // Growth factor (10%)
+    if (analytics.growth_rate >= 20.0) score += 10.0;
+    else if (analytics.growth_rate >= 10.0) score += 8.0;
+    else if (analytics.growth_rate >= 0.0) score += 5.0;
+    else score += 2.0;
+    
+    return std::min(score, 100.0);
+}
+
+// Helper function to calculate percentiles
+double JobParser::calculatePercentile(const std::vector<double>& data, double percentile) {
+    if (data.empty()) return 0.0;
+    int index = static_cast<int>(data.size() * percentile);
+    return data[std::min(index, static_cast<int>(data.size() - 1))];
+}
+
+// Helper function to extract date from timestamp
+std::string JobParser::extractDate(const std::string& timestamp) {
+    if (timestamp.empty()) return "";
+    // Simple extraction - assumes format like "2024-01-15"
+    if (timestamp.length() >= 10) {
+        return timestamp.substr(0, 10);
+    }
+    return timestamp;
+}
 }
