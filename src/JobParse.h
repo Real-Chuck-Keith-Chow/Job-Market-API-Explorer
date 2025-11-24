@@ -54,4 +54,25 @@ private:
     static double calculateSalaryMatchScore(const Job& job, double desired_salary);
 };
 
+// Add to public section of JobParser class:
+static std::vector<Job> rankJobsByRelevance(const std::vector<Job>& jobs,
+                                           const std::string& user_skills,
+                                           const std::string& preferred_location = "",
+                                           double desired_salary = 0,
+                                           const std::vector<std::string>& preferred_technologies = {});
+
+static std::vector<Job> findSimilarJobs(const Job& reference_job,
+                                       const std::vector<Job>& all_jobs,
+                                       int max_results = 10);
+
+private:
+// Add private helper functions:
+static double calculateTechnologyMatchScore(const Job& job,
+                                           const std::string& user_skills,
+                                           const std::vector<std::string>& preferred_technologies);
+
+static double calculateLocationMatchScore(const Job& job, const std::string& preferred_location);
+
+static double calculateSalaryMatchScore(const Job& job, double desired_salary);
+
 #endif
