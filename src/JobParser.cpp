@@ -1001,4 +1001,193 @@ std::string JobParser::extractDate(const std::string& timestamp) {
     }
     return timestamp;
 }
+    // Add comprehensive job market analytics dashboard
+JobMarketAnalytics JobParser::generateMarketAnalytics(const std::vector<Job>& jobs, int days_back) {
+    JobMarketAnalytics analytics;
+    
+    if (jobs.empty()) return analytics;
+    
+    // Basic statistics
+    analytics.total_jobs = jobs.size();
+    analytics.analysis_date = getCurrentTimestamp();
+    
+    // Technology trends
+    analytics.technology_trends = analyzeTechnologyTrends(jobs);
+    
+    // Salary analytics
+    calculateSalaryAnalytics(analytics, jobs);
+    
+    // Company analytics
+    calculateCompanyAnalytics(analytics, jobs);
+    
+    // Location analytics
+    calculateLocationAnalytics(analytics, jobs);
+    
+    // Experience level distribution
+    calculateExperienceDistribution(analytics, jobs);
+    
+    // Job category distribution
+    calculateCategoryDistribution(analytics, jobs);
+    
+    // Market trends and insights
+    calculateMarketInsights(analytics, jobs, days_back);
+    
+    // Top skills in demand
+    analytics.top_skills_demand = extractTopSkills(jobs, 10);
+    
+    return analytics;
+}
+
+// Helper function to calculate salary analytics
+void JobParser::calculateSalaryAnalytics(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    double total_min = 0.0, total_max = 0.0;
+    int salary_count = 0;
+    std::vector<double> all_salaries;
+    
+    for (const auto& job : jobs) {
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            total_min += job.salary_min;
+            total_max += job.salary_max;
+            all_salaries.push_back(avg_salary);
+            salary_count++;
+        }
+    }
+    
+    if (salary_count > 0) {
+        analytics.average_salary_min = total_min / salary_count;
+        analytics.average_salary_max = total_max / salary_count;
+        analytics.average_salary = (analytics.average_salary_min + analytics.average_salary_max) / 2.0;
+        
+        // Calculate salary percentiles
+        std::sort(all_salaries.begin(), all_salaries.end());
+        analytics.salary_25th_percentile = all_salaries[all_salaries.size() * 0.25];
+        analytics.salary_75th_percentile = all_salaries[all_salaries.size() * 0.75];
+        analytics.salary_90th_percentile = all_salaries[all_salaries.size() * 0.90];
+    }
+    
+    analytics.jobs_with_salary_info = salary_count;
+}
+
+// Helper function to calculate company analytics
+void JobParser::calculateCompanyAnalytics(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    std::map<std::string, int> company_counts;
+    std::map<std::string, double> company_avg_salaries;
+    std::map<std::string, int> company_salary_counts;
+    
+    for (const auto& job : job) {
+        std::string company_normalized = normalizeCompanyName(job.company.display_name);
+        company_counts[company_normalized]++;
+        
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            company_avg_salaries[company_normalized] += avg_salary;
+            company_salary_counts[company_normalized]++;
+        }
+    }
+    
+    // Find top hiring companies
+    analytics.top_hiring_companies = getTopEntries(company_counts, 5);
+    
+    // Find top paying companies (with at least 3 salary data points)
+    std::map<std::string, double> valid_company_salaries;
+    for (const auto& [company, total] : company_avg_salaries) {
+        if (company_salary_counts[company] >= 3) {
+            valid_company_salaries[company] = total / company_salary_counts[company];
+        }
+    }
+    analytics.top_paying_companies = getTopEntries(valid_company_salaries, 5);
+}
+
+// Helper function to calculate location analytics
+void JobParser::calculateLocationAnalytics(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    std::map<std::string, int> location_counts;
+    std::map<std::string, double> location_avg_salaries;
+    std::map<std::string, int> location_salary_counts;
+    
+    for (const auto& job : jobs) {
+        std::string location_key = job.location.display_name;
+        location_counts[location_key]++;
+        
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            location_avg_salaries[location_key] += avg_salary;
+            location_salary_counts[location_key]++;
+        }
+    }
+    
+    analytics.top_locations = getTopEntries(location_counts, 5);
+    
+    // Calculate top paying locations (with at least 3 salary data points)
+    std::map<std::string, double> valid_location_salaries;
+    for (const auto& [location, total] : location_avg_salaries) {
+        if (location_salary_counts[location] >= 3) {
+            valid_location_salaries[location] = total / location_salary_counts[location];
+        }
+    }
+    analytics.top_paying_locations = getTopEntries(valid_location_salaries, 5);
+}
+
+// Helper function to calculate experience level distribution
+void JobParser::calculateExperienceDistribution(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    std::map<std::string, int> experience_counts;
+    
+    for (const auto& job : jobs) {
+        std::string experience_level = detectExperienceLevel(job);
+        experience_counts[experience_level]++;
+    }
+    
+    analytics.experience_distribution = experience_counts;
+}
+
+// Helper function to calculate job category distribution
+void JobParser::calculateCategoryDistribution(JobMarketAnalytics& analytics, const std::vector<Job>& jobs) {
+    std::map<std::string, int> category_counts;
+    
+    for (const auto& job : jobs) {
+        std::string category = categorizeJob(job);
+        category_counts[category]++;
+    }
+    
+    analytics.category_distribution = category_counts;
+}
+
+// Helper function to extract top skills in demand
+std::map<std::string, int> JobParser::extractTopSkills(const std::vector<Job>& jobs, int top_n) {
+    std::map<std::string, int> all_skills;
+    
+    for (const auto& job : jobs) {
+        auto technologies = extractTechnologies(job.description);
+        for (const auto& tech : technologies) {
+            all_skills[tech]++;
+        }
+    }
+    
+    return getTopEntries(all_skills, top_n);
+}
+
+// Helper function to get top N entries from a map
+template<typename K, typename V>
+std::map<K, V> JobParser::getTopEntries(const std::map<K, V>& input_map, int top_n) {
+    std::vector<std::pair<K, V>> pairs(input_map.begin(), input_map.end());
+    std::sort(pairs.begin(), pairs.end(),
+              [](const std::pair<K, V>& a, const std::pair<K, V>& b) {
+                  return a.second > b.second;
+              });
+    
+    std::map<K, V> result;
+    for (int i = 0; i < std::min(top_n, static_cast<int>(pairs.size())); i++) {
+        result[pairs[i].first] = pairs[i].second;
+    }
+    
+    return result;
+}
+
+// Helper function to get current timestamp
+std::string JobParser::getCurrentTimestamp() {
+    std::time_t now = std::time(nullptr);
+    char buffer[80];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    return std::string(buffer);
+}
 }
