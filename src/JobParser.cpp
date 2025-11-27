@@ -1190,4 +1190,255 @@ std::string JobParser::getCurrentTimestamp() {
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     return std::string(buffer);
 }
+    // Add real-time job alert and notification system
+std::vector<JobAlert> JobParser::generateJobAlerts(const std::vector<Job>& new_jobs, 
+                                                  const UserPreferences& preferences,
+                                                  const std::vector<Job>& previous_jobs) {
+    std::vector<JobAlert> alerts;
+    
+    if (new_jobs.empty()) return alerts;
+    
+    // Create job matching alerts
+    auto matching_jobs = findMatchingJobs(new_jobs, preferences);
+    for (const auto& job : matching_jobs) {
+        JobAlert alert;
+        alert.type = AlertType::JOB_MATCH;
+        alert.title = "New Job Match: " + job.title;
+        alert.message = "A new job matching your preferences has been posted at " + job.company.display_name;
+        alert.job = job;
+        alert.priority = calculateAlertPriority(job, preferences);
+        alert.timestamp = getCurrentTimestamp();
+        alerts.push_back(alert);
+    }
+    
+    // Create salary trend alerts
+    auto salary_alerts = generateSalaryAlerts(new_jobs, preferences, previous_jobs);
+    alerts.insert(alerts.end(), salary_alerts.begin(), salary_alerts.end());
+    
+    // Create technology trend alerts
+    auto tech_alerts = generateTechnologyAlerts(new_jobs, preferences);
+    alerts.insert(alerts.end(), tech_alerts.begin(), tech_alerts.end());
+    
+    // Create company hiring alerts
+    auto company_alerts = generateCompanyAlerts(new_jobs, preferences);
+    alerts.insert(alerts.end(), company_alerts.begin(), company_alerts.end());
+    
+    // Sort alerts by priority (highest first)
+    std::sort(alerts.begin(), alerts.end(),
+              [](const JobAlert& a, const JobAlert& b) {
+                  return a.priority > b.priority;
+              });
+    
+    return alerts;
+}
+
+// Find jobs matching user preferences
+std::vector<Job> JobParser::findMatchingJobs(const std::vector<Job>& jobs, 
+                                            const UserPreferences& preferences) {
+    std::vector<Job> matching_jobs;
+    
+    for (const auto& job : jobs) {
+        double match_score = calculateJobMatchScore(job, preferences);
+        
+        if (match_score >= preferences.min_match_threshold) {
+            matching_jobs.push_back(job);
+        }
+    }
+    
+    return matching_jobs;
+}
+
+// Calculate comprehensive job match score
+double JobParser::calculateJobMatchScore(const Job& job, const UserPreferences& preferences) {
+    double total_score = 0.0;
+    double max_possible = 0.0;
+    
+    // Technology match (35% weight)
+    if (!preferences.skills.empty()) {
+        double tech_score = calculateTechnologyMatchScore(job, preferences.skills, preferences.preferred_technologies);
+        total_score += tech_score * 0.35;
+        max_possible += 10.0 * 0.35;
+    }
+    
+    // Location match (25% weight)
+    if (!preferences.preferred_locations.empty()) {
+        double location_score = 0.0;
+        for (const auto& location : preferences.preferred_locations) {
+            double loc_score = calculateLocationMatchScore(job, location);
+            location_score = std::max(location_score, loc_score);
+        }
+        total_score += location_score * 0.25;
+        max_possible += 10.0 * 0.25;
+    }
+    
+    // Salary match (20% weight)
+    if (preferences.desired_salary > 0) {
+        double salary_score = calculateSalaryMatchScore(job, preferences.desired_salary);
+        total_score += salary_score * 0.20;
+        max_possible += 10.0 * 0.20;
+    }
+    
+    // Experience level match (10% weight)
+    if (!preferences.experience_level.empty()) {
+        std::string job_experience = detectExperienceLevel(job);
+        if (job_experience == preferences.experience_level) {
+            total_score += 10.0 * 0.10;
+        } else if (isExperienceCompatible(job_experience, preferences.experience_level)) {
+            total_score += 7.0 * 0.10;
+        }
+        max_possible += 10.0 * 0.10;
+    }
+    
+    // Job type match (10% weight)
+    if (!preferences.job_types.empty()) {
+        std::string job_category = categorizeJob(job);
+        if (std::find(preferences.job_types.begin(), preferences.job_types.end(), job_category) != preferences.job_types.end()) {
+            total_score += 10.0 * 0.10;
+        }
+        max_possible += 10.0 * 0.10;
+    }
+    
+    // Normalize to 0-100 scale
+    if (max_possible > 0) {
+        return (total_score / max_possible) * 100.0;
+    }
+    
+    return 0.0;
+}
+
+// Check if experience levels are compatible
+bool JobParser::isExperienceCompatible(const std::string& job_level, const std::string& user_level) {
+    std::map<std::string, int> level_ranks = {
+        {"Entry Level", 1},
+        {"Mid Level", 2},
+        {"Senior", 3},
+        {"Management", 4}
+    };
+    
+    auto job_rank = level_ranks.find(job_level);
+    auto user_rank = level_ranks.find(user_level);
+    
+    if (job_rank != level_ranks.end() && user_rank != level_ranks.end()) {
+        // Allow one level difference (e.g., Mid Level applying for Senior)
+        return std::abs(job_rank->second - user_rank->second) <= 1;
+    }
+    
+    return false;
+}
+
+// Calculate alert priority based on job match and user preferences
+int JobParser::calculateAlertPriority(const Job& job, const UserPreferences& preferences) {
+    double match_score = calculateJobMatchScore(job, preferences);
+    int priority = static_cast<int>(match_score / 10.0); // Convert to 1-10 scale
+    
+    // Boost priority for high-salary jobs
+    double job_avg_salary = (job.salary_min + job.salary_max) / 2.0;
+    if (job_avg_salary > preferences.desired_salary * 1.2) {
+        priority += 2;
+    }
+    
+    // Boost priority for preferred companies
+    if (std::find(preferences.preferred_companies.begin(), 
+                  preferences.preferred_companies.end(), 
+                  job.company.display_name) != preferences.preferred_companies.end()) {
+        priority += 3;
+    }
+    
+    return std::min(priority, 10); // Cap at 10
+}
+
+// Generate salary trend alerts
+std::vector<JobAlert> JobParser::generateSalaryAlerts(const std::vector<Job>& new_jobs,
+                                                     const UserPreferences& preferences,
+                                                     const std::vector<Job>& previous_jobs) {
+    std::vector<JobAlert> alerts;
+    
+    if (new_jobs.empty() || previous_jobs.empty()) return alerts;
+    
+    // Calculate average salary trends
+    double current_avg = calculateAverageSalary(new_jobs);
+    double previous_avg = calculateAverageSalary(previous_jobs);
+    
+    if (current_avg > 0 && previous_avg > 0) {
+        double salary_change = ((current_avg - previous_avg) / previous_avg) * 100.0;
+        
+        if (std::abs(salary_change) >= 5.0) { // 5% change threshold
+            JobAlert alert;
+            alert.type = AlertType::SALARY_TREND;
+            alert.title = "Salary Trend Alert";
+            alert.message = "Average market salary has " + 
+                           (salary_change > 0 ? "increased" : "decreased") + 
+                           " by " + std::to_string(static_cast<int>(std::abs(salary_change))) + "%";
+            alert.priority = 6;
+            alert.timestamp = getCurrentTimestamp();
+            alerts.push_back(alert);
+        }
+    }
+    
+    return alerts;
+}
+
+// Generate technology trend alerts
+std::vector<JobAlert> JobParser::generateTechnologyAlerts(const std::vector<Job>& new_jobs,
+                                                         const UserPreferences& preferences) {
+    std::vector<JobAlert> alerts;
+    
+    auto current_trends = analyzeTechnologyTrends(new_jobs);
+    
+    // Alert for emerging technologies in user's interest area
+    for (const auto& tech : preferences.emerging_technologies_interest) {
+        if (current_trends.find(tech) != current_trends.end() && current_trends[tech] >= 3) {
+            JobAlert alert;
+            alert.type = AlertType::TECHNOLOGY_TREND;
+            alert.title = "Emerging Technology: " + tech;
+            alert.message = tech + " is appearing in " + std::to_string(current_trends[tech]) + " new job postings";
+            alert.priority = 5;
+            alert.timestamp = getCurrentTimestamp();
+            alerts.push_back(alert);
+        }
+    }
+    
+    return alerts;
+}
+
+// Generate company hiring alerts
+std::vector<JobAlert> JobParser::generateCompanyAlerts(const std::vector<Job>& new_jobs,
+                                                      const UserPreferences& preferences) {
+    std::vector<JobAlert> alerts;
+    
+    std::map<std::string, int> company_counts;
+    for (const auto& job : new_jobs) {
+        company_counts[job.company.display_name]++;
+    }
+    
+    // Alert for hiring sprees at preferred companies
+    for (const auto& company : preferences.preferred_companies) {
+        if (company_counts.find(company) != company_counts.end() && company_counts[company] >= 5) {
+            JobAlert alert;
+            alert.type = AlertType::COMPANY_HIRING;
+            alert.title = "Hiring Spree: " + company;
+            alert.message = company + " has posted " + std::to_string(company_counts[company]) + " new jobs";
+            alert.priority = 7;
+            alert.timestamp = getCurrentTimestamp();
+            alerts.push_back(alert);
+        }
+    }
+    
+    return alerts;
+}
+
+// Calculate average salary from job list
+double JobParser::calculateAverageSalary(const std::vector<Job>& jobs) {
+    double total = 0.0;
+    int count = 0;
+    
+    for (const auto& job : jobs) {
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            total += (job.salary_min + job.salary_max) / 2.0;
+            count++;
+        }
+    }
+    
+    return count > 0 ? total / count : 0.0;
+}
 }
