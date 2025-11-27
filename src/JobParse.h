@@ -75,4 +75,58 @@ static double calculateLocationMatchScore(const Job& job, const std::string& pre
 
 static double calculateSalaryMatchScore(const Job& job, double desired_salary);
 
+// Add new enums and structs (before class declaration)
+enum class AlertType {
+    JOB_MATCH,
+    SALARY_TREND,
+    TECHNOLOGY_TREND,
+    COMPANY_HIRING,
+    SKILL_GAP
+};
+
+struct UserPreferences {
+    std::vector<std::string> skills;
+    std::vector<std::string> preferred_technologies;
+    std::vector<std::string> preferred_locations;
+    std::vector<std::string> preferred_companies;
+    std::vector<std::string> job_types;
+    std::vector<std::string> emerging_technologies_interest;
+    std::string experience_level;
+    double desired_salary;
+    double min_match_threshold;
+    
+    UserPreferences() : desired_salary(0), min_match_threshold(70.0) {}
+};
+
+struct JobAlert {
+    AlertType type;
+    std::string title;
+    std::string message;
+    Job job;
+    int priority;
+    std::string timestamp;
+    
+    JobAlert() : priority(5) {}
+};
+
+// Add to public section of JobParser class:
+static std::vector<JobAlert> generateJobAlerts(const std::vector<Job>& new_jobs,
+                                              const UserPreferences& preferences,
+                                              const std::vector<Job>& previous_jobs = {});
+
+private:
+// Add private helper functions:
+static std::vector<Job> findMatchingJobs(const std::vector<Job>& jobs, const UserPreferences& preferences);
+static double calculateJobMatchScore(const Job& job, const UserPreferences& preferences);
+static bool isExperienceCompatible(const std::string& job_level, const std::string& user_level);
+static int calculateAlertPriority(const Job& job, const UserPreferences& preferences);
+static std::vector<JobAlert> generateSalaryAlerts(const std::vector<Job>& new_jobs,
+                                                 const UserPreferences& preferences,
+                                                 const std::vector<Job>& previous_jobs);
+static std::vector<JobAlert> generateTechnologyAlerts(const std::vector<Job>& new_jobs,
+                                                     const UserPreferences& preferences);
+static std::vector<JobAlert> generateCompanyAlerts(const std::vector<Job>& new_jobs,
+                                                  const UserPreferences& preferences);
+static double calculateAverageSalary(const std::vector<Job>& jobs);
+
 #endif
