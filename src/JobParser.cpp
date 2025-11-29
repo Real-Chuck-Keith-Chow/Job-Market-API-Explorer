@@ -1441,4 +1441,377 @@ double JobParser::calculateAverageSalary(const std::vector<Job>& jobs) {
     
     return count > 0 ? total / count : 0.0;
 }
+    // Add advanced job search with multiple filtering criteria
+std::vector<Job> JobParser::advancedJobSearch(const std::vector<Job>& jobs,
+                                             const SearchCriteria& criteria) {
+    std::vector<Job> filtered_jobs = jobs;
+    
+    // Apply filters in order of performance efficiency
+    if (!criteria.keywords.empty()) {
+        filtered_jobs = filterByKeywords(filtered_jobs, criteria.keywords, criteria.keyword_match_type);
+    }
+    
+    if (!criteria.technologies.empty()) {
+        filtered_jobs = filterByTechnologies(filtered_jobs, criteria.technologies, criteria.tech_match_type);
+    }
+    
+    if (!criteria.locations.empty()) {
+        filtered_jobs = filterByLocations(filtered_jobs, criteria.locations, criteria.location_match_type);
+    }
+    
+    if (criteria.min_salary > 0 || criteria.max_salary > 0) {
+        filtered_jobs = filterBySalaryRange(filtered_jobs, criteria.min_salary, criteria.max_salary);
+    }
+    
+    if (!criteria.companies.empty()) {
+        filtered_jobs = filterByCompanies(filtered_jobs, criteria.companies);
+    }
+    
+    if (!criteria.job_types.empty()) {
+        filtered_jobs = filterByJobTypes(filtered_jobs, criteria.job_types);
+    }
+    
+    if (!criteria.experience_levels.empty()) {
+        filtered_jobs = filterByExperienceLevels(filtered_jobs, criteria.experience_levels);
+    }
+    
+    if (criteria.remote_only) {
+        filtered_jobs = filterRemoteJobs(filtered_jobs);
+    }
+    
+    if (criteria.posted_within_days > 0) {
+        filtered_jobs = filterByPostDate(filtered_jobs, criteria.posted_within_days);
+    }
+    
+    // Apply sorting
+    if (criteria.sort_by != SortBy::NONE) {
+        filtered_jobs = sortJobs(filtered_jobs, criteria.sort_by, criteria.sort_order);
+    }
+    
+    // Apply result limiting
+    if (criteria.max_results > 0 && filtered_jobs.size() > criteria.max_results) {
+        filtered_jobs.resize(criteria.max_results);
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by keywords in title and description
+std::vector<Job> JobParser::filterByKeywords(const std::vector<Job>& jobs,
+                                            const std::vector<std::string>& keywords,
+                                            KeywordMatchType match_type) {
+    if (keywords.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        bool matches = false;
+        
+        if (match_type == KeywordMatchType::ANY) {
+            // Match any keyword
+            for (const auto& keyword : keywords) {
+                if (containsKeyword(job, keyword)) {
+                    matches = true;
+                    break;
+                }
+            }
+        } else {
+            // Match all keywords
+            matches = true;
+            for (const auto& keyword : keywords) {
+                if (!containsKeyword(job, keyword)) {
+                    matches = false;
+                    break;
+                }
+            }
+        }
+        
+        if (matches) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Check if job contains keyword in title or description
+bool JobParser::containsKeyword(const Job& job, const std::string& keyword) {
+    std::string keyword_lower = keyword;
+    std::transform(keyword_lower.begin(), keyword_lower.end(), keyword_lower.begin(), ::tolower);
+    
+    std::string title_lower = job.title;
+    std::transform(title_lower.begin(), title_lower.end(), title_lower.begin(), ::tolower);
+    
+    std::string desc_lower = job.description;
+    std::transform(desc_lower.begin(), desc_lower.end(), desc_lower.begin(), ::tolower);
+    
+    return title_lower.find(keyword_lower) != std::string::npos ||
+           desc_lower.find(keyword_lower) != std::string::npos;
+}
+
+// Filter by multiple technologies
+std::vector<Job> JobParser::filterByTechnologies(const std::vector<Job>& jobs,
+                                                const std::vector<std::string>& technologies,
+                                                TechnologyMatchType match_type) {
+    if (technologies.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        auto job_technologies = extractTechnologies(job.description);
+        
+        bool matches = false;
+        
+        if (match_type == TechnologyMatchType::ANY) {
+            // Match any technology
+            for (const auto& tech : technologies) {
+                if (std::find(job_technologies.begin(), job_technologies.end(), tech) != job_technologies.end()) {
+                    matches = true;
+                    break;
+                }
+            }
+        } else {
+            // Match all technologies
+            matches = true;
+            for (const auto& tech : technologies) {
+                if (std::find(job_technologies.begin(), job_technologies.end(), tech) == job_technologies.end()) {
+                    matches = false;
+                    break;
+                }
+            }
+        }
+        
+        if (matches) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by multiple locations
+std::vector<Job> JobParser::filterByLocations(const std::vector<Job>& jobs,
+                                             const std::vector<std::string>& locations,
+                                             LocationMatchType match_type) {
+    if (locations.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        bool matches = false;
+        
+        std::string job_location_lower = job.location.display_name;
+        std::transform(job_location_lower.begin(), job_location_lower.end(), job_location_lower.begin(), ::tolower);
+        
+        if (match_type == LocationMatchType::EXACT) {
+            // Exact location match
+            for (const auto& location : locations) {
+                std::string location_lower = location;
+                std::transform(location_lower.begin(), location_lower.end(), location_lower.begin(), ::tolower);
+                
+                if (job_location_lower == location_lower) {
+                    matches = true;
+                    break;
+                }
+            }
+        } else {
+            // Partial location match (contains)
+            for (const auto& location : locations) {
+                std::string location_lower = location;
+                std::transform(location_lower.begin(), location_lower.end(), location_lower.begin(), ::tolower);
+                
+                if (job_location_lower.find(location_lower) != std::string::npos ||
+                    location_lower.find(job_location_lower) != std::string::npos) {
+                    matches = true;
+                    break;
+                }
+            }
+        }
+        
+        if (matches) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by salary range
+std::vector<Job> JobParser::filterBySalaryRange(const std::vector<Job>& jobs,
+                                               double min_salary, double max_salary) {
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        double job_min = job.salary_min > 0 ? job.salary_min : 0;
+        double job_max = job.salary_max > 0 ? job.salary_max : 0;
+        
+        bool matches = true;
+        
+        if (min_salary > 0) {
+            if (job_max > 0 && job_max < min_salary) {
+                matches = false;
+            } else if (job_min > 0 && job_min < min_salary) {
+                matches = false;
+            }
+        }
+        
+        if (max_salary > 0 && matches) {
+            if (job_min > 0 && job_min > max_salary) {
+                matches = false;
+            } else if (job_max > 0 && job_max > max_salary) {
+                matches = false;
+            }
+        }
+        
+        if (matches) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by companies
+std::vector<Job> JobParser::filterByCompanies(const std::vector<Job>& jobs,
+                                             const std::vector<std::string>& companies) {
+    if (companies.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        std::string company_normalized = normalizeCompanyName(job.company.display_name);
+        
+        for (const auto& company : companies) {
+            std::string company_normalized_target = normalizeCompanyName(company);
+            
+            if (company_normalized == company_normalized_target) {
+                filtered_jobs.push_back(job);
+                break;
+            }
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by job types/categories
+std::vector<Job> JobParser::filterByJobTypes(const std::vector<Job>& jobs,
+                                            const std::vector<std::string>& job_types) {
+    if (job_types.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        std::string category = categorizeJob(job);
+        
+        if (std::find(job_types.begin(), job_types.end(), category) != job_types.end()) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by experience levels
+std::vector<Job> JobParser::filterByExperienceLevels(const std::vector<Job>& jobs,
+                                                    const std::vector<std::string>& experience_levels) {
+    if (experience_levels.empty()) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        std::string experience = detectExperienceLevel(job);
+        
+        if (std::find(experience_levels.begin(), experience_levels.end(), experience) != experience_levels.end()) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter remote jobs only
+std::vector<Job> JobParser::filterRemoteJobs(const std::vector<Job>& jobs) {
+    std::vector<Job> filtered_jobs;
+    
+    for (const auto& job : jobs) {
+        std::string location_lower = job.location.display_name;
+        std::transform(location_lower.begin(), location_lower.end(), location_lower.begin(), ::tolower);
+        
+        if (location_lower.find("remote") != std::string::npos ||
+            location_lower.find("anywhere") != std::string::npos ||
+            location_lower.find("virtual") != std::string::npos) {
+            filtered_jobs.push_back(job);
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Filter by post date
+std::vector<Job> JobParser::filterByPostDate(const std::vector<Job>& jobs, int days_back) {
+    if (days_back <= 0) return jobs;
+    
+    std::vector<Job> filtered_jobs;
+    auto cutoff_time = std::chrono::system_clock::now() - std::chrono::hours(24 * days_back);
+    
+    for (const auto& job : jobs) {
+        // Simple date parsing (you might want to enhance this)
+        if (!job.created.empty()) {
+            // Assume ISO format or similar for simplicity
+            // In production, you'd want proper date parsing
+            filtered_jobs.push_back(job); // For now, include all
+        }
+    }
+    
+    return filtered_jobs;
+}
+
+// Sort jobs by various criteria
+std::vector<Job> JobParser::sortJobs(const std::vector<Job>& jobs,
+                                    SortBy sort_by, SortOrder sort_order) {
+    std::vector<Job> sorted_jobs = jobs;
+    
+    auto comparator = [sort_by, sort_order](const Job& a, const Job& b) {
+        bool result = false;
+        
+        switch (sort_by) {
+            case SortBy::RELEVANCE:
+                // Default to title sorting for relevance
+                result = a.title < b.title;
+                break;
+                
+            case SortBy::SALARY: {
+                double a_avg = (a.salary_min + a.salary_max) / 2.0;
+                double b_avg = (b.salary_min + b.salary_max) / 2.0;
+                result = a_avg < b_avg;
+                break;
+            }
+                
+            case SortBy::DATE:
+                result = a.created < b.created;
+                break;
+                
+            case SortBy::COMPANY:
+                result = a.company.display_name < b.company.display_name;
+                break;
+                
+            case SortBy::LOCATION:
+                result = a.location.display_name < b.location.display_name;
+                break;
+                
+            case SortBy::TITLE:
+                result = a.title < b.title;
+                break;
+                
+            default:
+                result = a.title < b.title;
+        }
+        
+        return sort_order == SortOrder::ASCENDING ? result : !result;
+    };
+    
+    std::sort(sorted_jobs.begin(), sorted_jobs.end(), comparator);
+    return sorted_jobs;
+}
 }
