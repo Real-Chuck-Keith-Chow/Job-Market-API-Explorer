@@ -129,4 +129,64 @@ static std::vector<JobAlert> generateCompanyAlerts(const std::vector<Job>& new_j
                                                   const UserPreferences& preferences);
 static double calculateAverageSalary(const std::vector<Job>& jobs);
 
+// Add new enums for search criteria (before class declaration)
+enum class KeywordMatchType { ANY, ALL };
+enum class TechnologyMatchType { ANY, ALL };
+enum class LocationMatchType { EXACT, PARTIAL };
+enum class SortBy { NONE, RELEVANCE, SALARY, DATE, COMPANY, LOCATION, TITLE };
+enum class SortOrder { ASCENDING, DESCENDING };
+
+struct SearchCriteria {
+    std::vector<std::string> keywords;
+    KeywordMatchType keyword_match_type = KeywordMatchType::ANY;
+    
+    std::vector<std::string> technologies;
+    TechnologyMatchType tech_match_type = TechnologyMatchType::ANY;
+    
+    std::vector<std::string> locations;
+    LocationMatchType location_match_type = LocationMatchType::PARTIAL;
+    
+    std::vector<std::string> companies;
+    std::vector<std::string> job_types;
+    std::vector<std::string> experience_levels;
+    
+    double min_salary = 0;
+    double max_salary = 0;
+    bool remote_only = false;
+    int posted_within_days = 0;
+    int max_results = 0;
+    
+    SortBy sort_by = SortBy::RELEVANCE;
+    SortOrder sort_order = SortOrder::DESCENDING;
+};
+
+// Add to public section of JobParser class:
+static std::vector<Job> advancedJobSearch(const std::vector<Job>& jobs,
+                                         const SearchCriteria& criteria);
+
+private:
+// Add private helper functions for search:
+static std::vector<Job> filterByKeywords(const std::vector<Job>& jobs,
+                                        const std::vector<std::string>& keywords,
+                                        KeywordMatchType match_type);
+static bool containsKeyword(const Job& job, const std::string& keyword);
+static std::vector<Job> filterByTechnologies(const std::vector<Job>& jobs,
+                                            const std::vector<std::string>& technologies,
+                                            TechnologyMatchType match_type);
+static std::vector<Job> filterByLocations(const std::vector<Job>& jobs,
+                                         const std::vector<std::string>& locations,
+                                         LocationMatchType match_type);
+static std::vector<Job> filterBySalaryRange(const std::vector<Job>& jobs,
+                                           double min_salary, double max_salary);
+static std::vector<Job> filterByCompanies(const std::vector<Job>& jobs,
+                                         const std::vector<std::string>& companies);
+static std::vector<Job> filterByJobTypes(const std::vector<Job>& jobs,
+                                        const std::vector<std::string>& job_types);
+static std::vector<Job> filterByExperienceLevels(const std::vector<Job>& jobs,
+                                                const std::vector<std::string>& experience_levels);
+static std::vector<Job> filterRemoteJobs(const std::vector<Job>& jobs);
+static std::vector<Job> filterByPostDate(const std::vector<Job>& jobs, int days_back);
+static std::vector<Job> sortJobs(const std::vector<Job>& jobs,
+                                SortBy sort_by, SortOrder sort_order);
+
 #endif
