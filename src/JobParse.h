@@ -189,4 +189,93 @@ static std::vector<Job> filterByPostDate(const std::vector<Job>& jobs, int days_
 static std::vector<Job> sortJobs(const std::vector<Job>& jobs,
                                 SortBy sort_by, SortOrder sort_order);
 
+// Add prediction structures (before class declaration)
+struct TechnologyTrend {
+    std::string technology;
+    int current_demand;
+    double predicted_growth_rate; // percentage
+    int predicted_demand_increase;
+    double confidence_score;
+};
+
+struct SalaryPrediction {
+    std::string category;
+    double current_average;
+    double predicted_change_percentage;
+    double predicted_absolute_change;
+    double confidence_score;
+};
+
+struct CategoryDemand {
+    std::string category;
+    double current_market_share;
+    int current_job_count;
+    double predicted_demand_change;
+    std::string growth_outlook;
+};
+
+struct EmergingOpportunity {
+    std::string technology_combination;
+    int current_occurrences;
+    int estimated_market_size;
+    double average_salary;
+    double salary_premium_percentage;
+    double growth_potential;
+    std::string risk_level;
+};
+
+struct MarketPredictions {
+    int forecast_period_days;
+    std::string generation_date;
+    double trend_job_growth_rate;
+    int historical_data_points;
+    double overall_confidence;
+    
+    std::vector<TechnologyTrend> technology_trends;
+    std::vector<SalaryPrediction> salary_predictions;
+    std::vector<CategoryDemand> category_demand;
+    std::vector<EmergingOpportunity> emerging_opportunities;
+    
+    MarketPredictions() : forecast_period_days(0), trend_job_growth_rate(0),
+                         historical_data_points(0), overall_confidence(0) {}
+};
+
+// Add to public section of JobParser class:
+static MarketPredictions predictMarketTrends(const std::vector<Job>& historical_jobs,
+                                            int forecast_days = 30);
+
+private:
+// Add private prediction helper functions:
+static void analyzeHistoricalTrends(MarketPredictions& predictions,
+                                   const std::vector<Job>& jobs);
+static void predictTechnologyTrends(MarketPredictions& predictions,
+                                   const std::vector<Job>& jobs,
+                                   int forecast_days);
+static void predictSalaryTrends(MarketPredictions& predictions,
+                               const std::vector<Job>& jobs,
+                               int forecast_days);
+static void predictCategoryDemand(MarketPredictions& predictions,
+                                 const std::vector<Job>& jobs,
+                                 int forecast_days);
+static void identifyEmergingOpportunities(MarketPredictions& predictions,
+                                         const std::vector<Job>& jobs);
+static void calculatePredictionConfidence(MarketPredictions& predictions,
+                                         const std::vector<Job>& jobs);
+
+static std::string extractDateKey(const std::string& timestamp);
+static double calculateGrowthRate(const std::vector<int>& counts);
+static double calculateSalaryTrend(const std::vector<double>& salaries);
+static double calculateAverage(const std::vector<double>& values);
+static double predictDemandChange(const std::string& category,
+                                 const std::vector<Job>& jobs);
+static std::string classifyGrowthOutlook(double change);
+static bool isEmergingTechnology(const std::string& tech);
+static double calculateSalaryPremium(double opportunity_salary,
+                                    const std::vector<Job>& jobs);
+static double calculateGrowthPotential(const std::string& tech_combo,
+                                      const std::vector<Job>& jobs);
+static std::string calculateRiskLevel(int occurrences, double growth_potential);
+static double calculateTechConfidenceScore(const std::vector<int>& counts);
+static double calculateSalaryConfidenceScore(const std::vector<double>& salaries);
+
 #endif
