@@ -1814,4 +1814,392 @@ std::vector<Job> JobParser::sortJobs(const std::vector<Job>& jobs,
     std::sort(sorted_jobs.begin(), sorted_jobs.end(), comparator);
     return sorted_jobs;
 }
+    // Add job market prediction and trend forecasting
+MarketPredictions JobParser::predictMarketTrends(const std::vector<Job>& historical_jobs,
+                                                int forecast_days) {
+    MarketPredictions predictions;
+    
+    if (historical_jobs.empty() || forecast_days <= 0) {
+        return predictions;
+    }
+    
+    predictions.forecast_period_days = forecast_days;
+    predictions.generation_date = getCurrentTimestamp();
+    
+    // Analyze historical trends
+    analyzeHistoricalTrends(predictions, historical_jobs);
+    
+    // Predict technology trends
+    predictTechnologyTrends(predictions, historical_jobs, forecast_days);
+    
+    // Predict salary trends
+    predictSalaryTrends(predictions, historical_jobs, forecast_days);
+    
+    // Predict demand trends by category
+    predictCategoryDemand(predictions, historical_jobs, forecast_days);
+    
+    // Identify emerging opportunities
+    identifyEmergingOpportunities(predictions, historical_jobs);
+    
+    // Calculate confidence scores
+    calculatePredictionConfidence(predictions, historical_jobs);
+    
+    return predictions;
+}
+
+// Analyze historical job market trends
+void JobParser::analyzeHistoricalTrends(MarketPredictions& predictions,
+                                       const std::vector<Job>& jobs) {
+    // Group jobs by approximate date (simplified - in real app, parse dates properly)
+    std::map<std::string, int> daily_counts;
+    std::map<std::string, double> daily_avg_salaries;
+    std::map<std::string, int> daily_salary_counts;
+    
+    for (const auto& job : jobs) {
+        // Extract date portion (simplified - assumes ISO format or similar)
+        std::string date_key = extractDateKey(job.created);
+        daily_counts[date_key]++;
+        
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            daily_avg_salaries[date_key] += avg_salary;
+            daily_salary_counts[date_key]++;
+        }
+    }
+    
+    // Calculate trends
+    int total_jobs = jobs.size();
+    predictions.historical_data_points = total_jobs;
+    
+    if (daily_counts.size() >= 2) {
+        // Simple linear trend calculation
+        auto first = daily_counts.begin();
+        auto last = std::prev(daily_counts.end());
+        
+        int first_count = first->second;
+        int last_count = last->second;
+        int days_between = static_cast<int>(daily_counts.size()) - 1;
+        
+        if (days_between > 0) {
+            predictions.trend_job_growth_rate = (last_count - first_count) / static_cast<double>(days_between);
+        }
+    }
+}
+
+// Predict technology trends
+void JobParser::predictTechnologyTrends(MarketPredictions& predictions,
+                                       const std::vector<Job>& jobs,
+                                       int forecast_days) {
+    std::map<std::string, std::vector<int>> tech_daily_counts;
+    
+    // Group technology appearances by date
+    for (const auto& job : jobs) {
+        std::string date_key = extractDateKey(job.created);
+        auto technologies = extractTechnologies(job.description);
+        
+        for (const auto& tech : technologies) {
+            // Simple tracking - in real app, you'd want proper time series
+            tech_daily_counts[tech].push_back(1);
+        }
+    }
+    
+    // Identify growing technologies
+    for (const auto& [tech, counts] : tech_daily_counts) {
+        if (counts.size() >= 3) { // Need at least 3 data points
+            // Simple growth detection
+            double growth_rate = calculateGrowthRate(counts);
+            
+            if (growth_rate > 0.1) { // 10% growth threshold
+                TechnologyTrend trend;
+                trend.technology = tech;
+                trend.current_demand = static_cast<int>(counts.size());
+                trend.predicted_growth_rate = growth_rate * 100.0; // Convert to percentage
+                trend.predicted_demand_increase = static_cast<int>(counts.size() * growth_rate * forecast_days / 30.0);
+                trend.confidence_score = calculateTechConfidenceScore(counts);
+                
+                predictions.technology_trends.push_back(trend);
+            }
+        }
+    }
+    
+    // Sort by predicted growth rate
+    std::sort(predictions.technology_trends.begin(), predictions.technology_trends.end(),
+              [](const TechnologyTrend& a, const TechnologyTrend& b) {
+                  return a.predicted_growth_rate > b.predicted_growth_rate;
+              });
+    
+    // Limit to top predictions
+    if (predictions.technology_trends.size() > 10) {
+        predictions.technology_trends.resize(10);
+    }
+}
+
+// Predict salary trends
+void JobParser::predictSalaryTrends(MarketPredictions& predictions,
+                                   const std::vector<Job>& jobs,
+                                   int forecast_days) {
+    std::map<std::string, std::vector<double>> salary_by_category;
+    
+    // Group salaries by job category
+    for (const auto& job : jobs) {
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            std::string category = categorizeJob(job);
+            double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+            salary_by_category[category].push_back(avg_salary);
+        }
+    }
+    
+    // Predict salary changes by category
+    for (const auto& [category, salaries] : salary_by_category) {
+        if (salaries.size() >= 5) { // Need sufficient data
+            // Simple linear regression for salary trend
+            double salary_trend = calculateSalaryTrend(salaries);
+            
+            SalaryPrediction prediction;
+            prediction.category = category;
+            prediction.current_average = calculateAverage(salaries);
+            prediction.predicted_change_percentage = salary_trend * 100.0;
+            prediction.predicted_absolute_change = prediction.current_average * salary_trend;
+            prediction.confidence_score = calculateSalaryConfidenceScore(salaries);
+            
+            predictions.salary_predictions.push_back(prediction);
+        }
+    }
+    
+    // Sort by predicted salary increase
+    std::sort(predictions.salary_predictions.begin(), predictions.salary_predictions.end(),
+              [](const SalaryPrediction& a, const SalaryPrediction& b) {
+                  return a.predicted_change_percentage > b.predicted_change_percentage;
+              });
+}
+
+// Predict category demand
+void JobParser::predictCategoryDemand(MarketPredictions& predictions,
+                                     const std::vector<Job>& jobs,
+                                     int forecast_days) {
+    std::map<std::string, int> category_counts;
+    
+    // Count jobs by category
+    for (const auto& job : jobs) {
+        std::string category = categorizeJob(job);
+        category_counts[category]++;
+    }
+    
+    // Calculate demand predictions
+    int total_jobs = jobs.size();
+    
+    for (const auto& [category, count] : category_counts) {
+        double market_share = static_cast<double>(count) / total_jobs * 100.0;
+        
+        CategoryDemand demand;
+        demand.category = category;
+        demand.current_market_share = market_share;
+        demand.current_job_count = count;
+        
+        // Simple prediction based on recent trends
+        // In a real app, you'd use time series analysis
+        if (count > 10) {
+            demand.predicted_demand_change = predictDemandChange(category, jobs);
+            demand.growth_outlook = classifyGrowthOutlook(demand.predicted_demand_change);
+        }
+        
+        predictions.category_demand.push_back(demand);
+    }
+    
+    // Sort by current market share
+    std::sort(predictions.category_demand.begin(), predictions.category_demand.end(),
+              [](const CategoryDemand& a, const CategoryDemand& b) {
+                  return a.current_market_share > b.current_market_share;
+              });
+}
+
+// Identify emerging opportunities
+void JobParser::identifyEmergingOpportunities(MarketPredictions& predictions,
+                                             const std::vector<Job>& jobs) {
+    // Look for jobs with rare but valuable technology combinations
+    std::map<std::string, int> rare_tech_counts;
+    std::map<std::string, double> rare_tech_salaries;
+    std::map<std::string, int> rare_tech_salary_counts;
+    
+    for (const auto& job : jobs) {
+        auto technologies = extractTechnologies(job.description);
+        
+        // Identify jobs with emerging technology combinations
+        if (technologies.size() >= 3) {
+            // Check for combinations including emerging tech
+            bool has_emerging = false;
+            for (const auto& tech : technologies) {
+                if (isEmergingTechnology(tech)) {
+                    has_emerging = true;
+                    break;
+                }
+            }
+            
+            if (has_emerging) {
+                // Create a technology combination key
+                std::string combo_key;
+                for (const auto& tech : technologies) {
+                    combo_key += tech + "+";
+                }
+                
+                rare_tech_counts[combo_key]++;
+                
+                if (job.salary_min > 0 && job.salary_max > 0) {
+                    double avg_salary = (job.salary_min + job.salary_max) / 2.0;
+                    rare_tech_salaries[combo_key] += avg_salary;
+                    rare_tech_salary_counts[combo_key]++;
+                }
+            }
+        }
+    }
+    
+    // Identify promising opportunities
+    for (const auto& [combo, count] : rare_tech_counts) {
+        if (count >= 2 && count <= 10) { // Rare but appearing
+            EmergingOpportunity opportunity;
+            opportunity.technology_combination = combo;
+            opportunity.current_occurrences = count;
+            opportunity.estimated_market_size = count * 100; // Simplified estimation
+            
+            if (rare_tech_salary_counts[combo] > 0) {
+                opportunity.average_salary = rare_tech_salaries[combo] / rare_tech_salary_counts[combo];
+                opportunity.salary_premium_percentage = calculateSalaryPremium(opportunity.average_salary, jobs);
+            }
+            
+            opportunity.growth_potential = calculateGrowthPotential(combo, jobs);
+            opportunity.risk_level = calculateRiskLevel(count, opportunity.growth_potential);
+            
+            predictions.emerging_opportunities.push_back(opportunity);
+        }
+    }
+    
+    // Sort by growth potential
+    std::sort(predictions.emerging_opportunities.begin(), predictions.emerging_opportunities.end(),
+              [](const EmergingOpportunity& a, const EmergingOpportunity& b) {
+                  return a.growth_potential > b.growth_potential;
+              });
+}
+
+// Helper functions for prediction calculations
+std::string JobParser::extractDateKey(const std::string& timestamp) {
+    if (timestamp.empty() || timestamp.length() < 10) {
+        return "unknown";
+    }
+    
+    // Extract YYYY-MM-DD portion
+    return timestamp.substr(0, 10);
+}
+
+double JobParser::calculateGrowthRate(const std::vector<int>& counts) {
+    if (counts.size() < 2) return 0.0;
+    
+    // Simple average growth rate
+    return (counts.back() - counts.front()) / static_cast<double>(counts.size() - 1);
+}
+
+double JobParser::calculateSalaryTrend(const std::vector<double>& salaries) {
+    if (salaries.size() < 2) return 0.0;
+    
+    // Simple linear trend
+    return (salaries.back() - salaries.front()) / salaries.front();
+}
+
+double JobParser::calculateAverage(const std::vector<double>& values) {
+    if (values.empty()) return 0.0;
+    
+    double sum = 0.0;
+    for (double val : values) {
+        sum += val;
+    }
+    return sum / values.size();
+}
+
+double JobParser::predictDemandChange(const std::string& category, const std::vector<Job>& jobs) {
+    // Simplified prediction - in real app, use proper time series analysis
+    return 5.0 + (rand() % 15); // Random 5-20% growth for demo
+}
+
+std::string JobParser::classifyGrowthOutlook(double change) {
+    if (change > 15.0) return "High Growth";
+    if (change > 5.0) return "Moderate Growth";
+    if (change > -5.0) return "Stable";
+    return "Declining";
+}
+
+bool JobParser::isEmergingTechnology(const std::string& tech) {
+    static const std::vector<std::string> emerging_techs = {
+        "AI", "Machine Learning", "Blockchain", "Quantum", "IoT", 
+        "AR/VR", "Edge Computing", "5G", "Robotics", "Biotech"
+    };
+    
+    for (const auto& emerging : emerging_techs) {
+        if (tech.find(emerging) != std::string::npos) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+double JobParser::calculateSalaryPremium(double opportunity_salary, const std::vector<Job>& jobs) {
+    double market_average = calculateAverageSalary(jobs);
+    
+    if (market_average > 0) {
+        return ((opportunity_salary - market_average) / market_average) * 100.0;
+    }
+    
+    return 0.0;
+}
+
+double JobParser::calculateGrowthPotential(const std::string& tech_combo, const std::vector<Job>& jobs) {
+    // Simplified calculation - in real app, use market analysis
+    return 50.0 + (rand() % 50); // 50-100% for demo
+}
+
+std::string JobParser::calculateRiskLevel(int occurrences, double growth_potential) {
+    if (occurrences < 3) return "High Risk";
+    if (occurrences < 10) return "Medium Risk";
+    if (growth_potential > 80.0) return "High Reward";
+    return "Low Risk";
+}
+
+void JobParser::calculatePredictionConfidence(MarketPredictions& predictions,
+                                             const std::vector<Job>& jobs) {
+    // Calculate overall confidence based on data quality and quantity
+    int total_jobs = jobs.size();
+    int jobs_with_salary = 0;
+    
+    for (const auto& job : jobs) {
+        if (job.salary_min > 0 && job.salary_max > 0) {
+            jobs_with_salary++;
+        }
+    }
+    
+    // Simple confidence calculation
+    double data_quality = static_cast<double>(jobs_with_salary) / total_jobs;
+    double data_quantity = std::min(static_cast<double>(total_jobs) / 1000.0, 1.0);
+    
+    predictions.overall_confidence = (data_quality * 0.6 + data_quantity * 0.4) * 100.0;
+    
+    // Update individual confidence scores
+    for (auto& trend : predictions.technology_trends) {
+        trend.confidence_score = std::min(trend.confidence_score, predictions.overall_confidence);
+    }
+    
+    for (auto& prediction : predictions.salary_predictions) {
+        prediction.confidence_score = std::min(prediction.confidence_score, predictions.overall_confidence);
+    }
+}
+
+double JobParser::calculateTechConfidenceScore(const std::vector<int>& counts) {
+    if (counts.size() < 5) return 30.0;
+    if (counts.size() < 10) return 60.0;
+    return 85.0;
+}
+
+double JobParser::calculateSalaryConfidenceScore(const std::vector<double>& salaries) {
+    if (salaries.size() < 10) return 40.0;
+    if (salaries.size() < 20) return 70.0;
+    return 90.0;
+}
 }
