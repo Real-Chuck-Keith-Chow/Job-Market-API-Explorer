@@ -2202,4 +2202,405 @@ double JobParser::calculateSalaryConfidenceScore(const std::vector<double>& sala
     if (salaries.size() < 20) return 70.0;
     return 90.0;
 }
+    // Add career path planning and skill gap analysis
+CareerPathPlan JobParser::generateCareerPathPlan(const UserProfile& profile,
+                                                const std::vector<Job>& market_jobs,
+                                                const std::string& target_position) {
+    CareerPathPlan plan;
+    
+    plan.user_id = profile.user_id;
+    plan.generation_date = getCurrentTimestamp();
+    plan.current_position = profile.current_position;
+    plan.target_position = target_position;
+    
+    // Analyze current skills
+    analyzeCurrentSkills(plan, profile);
+    
+    // Find target job requirements
+    findTargetRequirements(plan, target_position, market_jobs);
+    
+    // Identify skill gaps
+    identifySkillGaps(plan);
+    
+    // Generate learning path
+    generateLearningPath(plan, market_jobs);
+    
+    // Calculate timeline and effort
+    calculateTimeline(plan, profile);
+    
+    // Find bridge positions
+    findBridgePositions(plan, market_jobs);
+    
+    // Calculate success probability
+    calculateSuccessProbability(plan, profile, market_jobs);
+    
+    // Generate actionable recommendations
+    generateRecommendations(plan);
+    
+    return plan;
+}
+
+// Analyze user's current skills
+void JobParser::analyzeCurrentSkills(CareerPathPlan& plan, const UserProfile& profile) {
+    plan.current_skills = profile.skills;
+    plan.years_experience = profile.years_experience;
+    plan.current_salary = profile.current_salary;
+    
+    // Calculate skill levels
+    for (const auto& skill : profile.skills) {
+        SkillLevel level;
+        level.skill_name = skill;
+        level.current_level = profile.skill_levels.count(skill) ? profile.skill_levels.at(skill) : 3; // Default intermediate
+        level.years_experience = profile.skill_experience.count(skill) ? profile.skill_experience.at(skill) : 1;
+        
+        plan.current_skill_levels.push_back(level);
+    }
+    
+    // Identify primary technology stack
+    plan.primary_tech_stack = identifyPrimaryTechStack(profile);
+}
+
+// Find requirements for target position
+void JobParser::findTargetRequirements(CareerPathPlan& plan, const std::string& target_position,
+                                      const std::vector<Job>& market_jobs) {
+    std::vector<Job> target_jobs;
+    
+    // Find similar jobs to target position
+    for (const auto& job : market_jobs) {
+        if (isSimilarPosition(job.title, target_position)) {
+            target_jobs.push_back(job);
+        }
+    }
+    
+    if (target_jobs.empty()) {
+        // Fallback: use all jobs for analysis
+        target_jobs = market_jobs;
+    }
+    
+    // Extract common requirements
+    extractCommonRequirements(plan, target_jobs);
+    
+    // Calculate target salary range
+    calculateTargetSalary(plan, target_jobs);
+    
+    // Identify required experience level
+    identifyRequiredExperience(plan, target_jobs);
+}
+
+// Identify skill gaps between current and target
+void JobParser::identifySkillGaps(CareerPathPlan& plan) {
+    std::set<std::string> current_skill_set(plan.current_skills.begin(), plan.current_skills.end());
+    
+    for (const auto& req : plan.target_requirements) {
+        SkillGap gap;
+        gap.skill_name = req.skill_name;
+        gap.required_level = req.required_level;
+        
+        // Check if user has this skill
+        auto it = std::find_if(plan.current_skill_levels.begin(), plan.current_skill_levels.end(),
+                              [&req](const SkillLevel& sl) { return sl.skill_name == req.skill_name; });
+        
+        if (it != plan.current_skill_levels.end()) {
+            gap.current_level = it->current_level;
+            gap.gap_size = req.required_level - it->current_level;
+            
+            if (gap.gap_size > 0) {
+                gap.gap_type = GapType::NEEDS_IMPROVEMENT;
+            } else if (gap.gap_size < 0) {
+                gap.gap_type = GapType::EXCEEDS_REQUIREMENTS;
+            } else {
+                gap.gap_type = GapType::MEETS_REQUIREMENTS;
+            }
+        } else {
+            // Skill not present at all
+            gap.current_level = 0;
+            gap.gap_size = req.required_level;
+            gap.gap_type = GapType::MISSING_SKILL;
+        }
+        
+        // Calculate learning priority
+        gap.priority = calculateSkillPriority(gap, req.frequency);
+        
+        plan.skill_gaps.push_back(gap);
+    }
+    
+    // Sort by priority
+    std::sort(plan.skill_gaps.begin(), plan.skill_gaps.end(),
+              [](const SkillGap& a, const SkillGap& b) {
+                  return a.priority > b.priority;
+              });
+}
+
+// Generate learning path to fill skill gaps
+void JobParser::generateLearningPath(CareerPathPlan& plan, const std::vector<Job>& market_jobs) {
+    // Group skills by category for structured learning
+    std::map<std::string, std::vector<SkillGap>> skills_by_category;
+    
+    for (const auto& gap : plan.skill_gaps) {
+        if (gap.gap_size > 0) { // Only skills that need improvement
+            std::string category = categorizeSkill(gap.skill_name);
+            skills_by_category[category].push_back(gap);
+        }
+    }
+    
+    // Create learning phases
+    int phase_number = 1;
+    for (const auto& [category, gaps] : skills_by_category) {
+        LearningPhase phase;
+        phase.phase_number = phase_number++;
+        phase.category = category;
+        phase.description = "Master " + category + " fundamentals and advanced concepts";
+        
+        // Add skills to learn in this phase
+        for (const auto& gap : gaps) {
+            phase.skills_to_learn.push_back(gap.skill_name);
+            phase.target_levels[gap.skill_name] = gap.required_level;
+        }
+        
+        // Estimate effort for this phase
+        phase.estimated_hours = estimateLearningHours(gaps);
+        phase.recommended_resources = recommendLearningResources(category, gaps, market_jobs);
+        phase.success_metrics = defineSuccessMetrics(category, gaps);
+        
+        plan.learning_phases.push_back(phase);
+    }
+    
+    // Add practical project phase
+    if (!plan.learning_phases.empty()) {
+        LearningPhase project_phase;
+        project_phase.phase_number = phase_number++;
+        project_phase.category = "Practical Application";
+        project_phase.description = "Build real-world projects to demonstrate skills";
+        project_phase.estimated_hours = 80; // 2 weeks full-time
+        project_phase.recommended_resources = {"GitHub repositories", "Open source projects", "Personal portfolio"};
+        project_phase.success_metrics = {"Complete 2-3 portfolio projects", "Contribute to open source", "Get code reviews"};
+        
+        plan.learning_phases.push_back(project_phase);
+    }
+}
+
+// Calculate timeline based on user availability
+void JobParser::calculateTimeline(CareerPathPlan& plan, const UserProfile& profile) {
+    int total_learning_hours = 0;
+    
+    for (const auto& phase : plan.learning_phases) {
+        total_learning_hours += phase.estimated_hours;
+    }
+    
+    // Adjust based on user's weekly commitment
+    int weekly_hours = profile.weekly_study_hours > 0 ? profile.weekly_study_hours : 10;
+    int total_weeks = total_learning_hours / weekly_hours;
+    
+    plan.total_estimated_hours = total_learning_hours;
+    plan.estimated_weeks = total_weeks;
+    plan.expected_completion_date = calculateCompletionDate(total_weeks);
+    
+    // Set milestone dates
+    int accumulated_weeks = 0;
+    for (auto& phase : plan.learning_phases) {
+        int phase_weeks = phase.estimated_hours / weekly_hours;
+        phase.expected_completion_weeks = accumulated_weeks + phase_weeks;
+        accumulated_weeks += phase_weeks;
+    }
+}
+
+// Find intermediate bridge positions
+void JobParser::findBridgePositions(CareerPathPlan& plan, const std::vector<Job>& market_jobs) {
+    // Find jobs that require some but not all target skills
+    std::set<std::string> current_skills(plan.current_skills.begin(), plan.current_skills.end());
+    
+    for (const auto& job : market_jobs) {
+        auto job_skills = extractTechnologies(job.description);
+        std::set<std::string> job_skill_set(job_skills.begin(), job_skills.end());
+        
+        // Calculate overlap with current skills
+        std::vector<std::string> common_skills;
+        std::set_intersection(current_skills.begin(), current_skills.end(),
+                             job_skill_set.begin(), job_skill_set.end(),
+                             std::back_inserter(common_skills));
+        
+        // Calculate overlap with target skills
+        std::set<std::string> target_skill_set;
+        for (const auto& req : plan.target_requirements) {
+            target_skill_set.insert(req.skill_name);
+        }
+        
+        std::vector<std::string> target_overlap;
+        std::set_intersection(job_skill_set.begin(), job_skill_set.end(),
+                             target_skill_set.begin(), target_skill_set.end(),
+                             std::back_inserter(target_overlap));
+        
+        // Check if this could be a bridge position
+        double current_overlap_ratio = common_skills.size() / static_cast<double>(job_skill_set.size());
+        double target_overlap_ratio = target_overlap.size() / static_cast<double>(target_skill_set.size());
+        
+        if (current_overlap_ratio >= 0.6 && target_overlap_ratio >= 0.3) {
+            BridgePosition bridge;
+            bridge.position_title = job.title;
+            bridge.company = job.company.display_name;
+            bridge.estimated_salary = (job.salary_min + job.salary_max) / 2.0;
+            bridge.skill_overlap_percentage = current_overlap_ratio * 100.0;
+            bridge.target_skill_exposure = target_overlap_ratio * 100.0;
+            bridge.recommendation_reason = "Builds " + std::to_string(static_cast<int>(target_overlap.size())) + 
+                                          " target skills while using existing expertise";
+            
+            plan.bridge_positions.push_back(bridge);
+            
+            if (plan.bridge_positions.size() >= 5) break; // Limit to top 5
+        }
+    }
+    
+    // Sort by target skill exposure
+    std::sort(plan.bridge_positions.begin(), plan.bridge_positions.end(),
+              [](const BridgePosition& a, const BridgePosition& b) {
+                  return a.target_skill_exposure > b.target_skill_exposure;
+              });
+}
+
+// Calculate probability of success
+void JobParser::calculateSuccessProbability(CareerPathPlan& plan, const UserProfile& profile,
+                                          const std::vector<Job>& market_jobs) {
+    double probability = 100.0;
+    
+    // Factor 1: Current skill overlap (40%)
+    double current_overlap_score = calculateCurrentOverlapScore(plan);
+    probability *= (current_overlap_score * 0.4);
+    
+    // Factor 2: Learning capability (25%)
+    double learning_score = calculateLearningCapabilityScore(profile);
+    probability *= (learning_score * 0.25);
+    
+    // Factor 3: Market demand (20%)
+    double market_demand_score = calculateMarketDemandScore(plan.target_position, market_jobs);
+    probability *= (market_demand_score * 0.20);
+    
+    // Factor 4: Timeline feasibility (15%)
+    double timeline_score = calculateTimelineFeasibilityScore(plan, profile);
+    probability *= (timeline_score * 0.15);
+    
+    plan.success_probability = std::min(probability, 100.0);
+    plan.confidence_level = calculateConfidenceLevel(plan, market_jobs.size());
+}
+
+// Generate actionable recommendations
+void JobParser::generateRecommendations(CareerPathPlan& plan) {
+    // Immediate actions (next 30 days)
+    plan.immediate_actions = {
+        "Complete skills assessment to validate current levels",
+        "Set up learning environment and schedule",
+        "Join relevant professional communities and forums",
+        "Update LinkedIn profile with current skills",
+        "Start Phase 1 of learning path"
+    };
+    
+    // Short-term goals (1-3 months)
+    plan.short_term_goals = {
+        "Complete first two learning phases",
+        "Build 1-2 small projects demonstrating new skills",
+        "Network with 5+ professionals in target field",
+        "Apply for 1-2 bridge positions if qualified",
+        "Get feedback on skills from mentors"
+    };
+    
+    // Long-term goals (3-12 months)
+    plan.long_term_goals = {
+        "Complete all learning phases and portfolio projects",
+        "Achieve target skill levels in key areas",
+        "Secure target position or significant promotion",
+        "Achieve target salary range",
+        "Establish thought leadership in target domain"
+    };
+    
+    // Risk mitigation strategies
+    plan.risk_mitigation = {
+        "Maintain current job while upskilling",
+        "Build emergency fund for career transition",
+        "Identify backup career paths",
+        "Regularly reassess market demand",
+        "Seek mentorship and professional guidance"
+    };
+}
+
+// Helper functions for career planning
+std::string JobParser::identifyPrimaryTechStack(const UserProfile& profile) {
+    if (profile.skills.empty()) return "General";
+    
+    // Find most frequent technology category
+    std::map<std::string, int> category_counts;
+    
+    for (const auto& skill : profile.skills) {
+        std::string category = categorizeSkill(skill);
+        category_counts[category]++;
+    }
+    
+    auto max_it = std::max_element(category_counts.begin(), category_counts.end(),
+                                   [](const auto& a, const auto& b) { return a.second < b.second; });
+    
+    return max_it != category_counts.end() ? max_it->first : "General";
+}
+
+bool JobParser::isSimilarPosition(const std::string& job_title, const std::string& target_position) {
+    std::string job_lower = job_title;
+    std::string target_lower = target_position;
+    
+    std::transform(job_lower.begin(), job_lower.end(), job_lower.begin(), ::tolower);
+    std::transform(target_lower.begin(), target_lower.end(), target_lower.begin(), ::tolower);
+    
+    // Check for keyword matches
+    std::vector<std::string> target_words = splitString(target_lower, " ");
+    int matches = 0;
+    
+    for (const auto& word : target_words) {
+        if (word.length() > 3 && job_lower.find(word) != std::string::npos) {
+            matches++;
+        }
+    }
+    
+    return matches >= 2; // At least 2 significant word matches
+}
+
+void JobParser::extractCommonRequirements(CareerPathPlan& plan, const std::vector<Job>& target_jobs) {
+    std::map<std::string, int> skill_frequency;
+    std::map<std::string, double> skill_avg_level;
+    std::map<std::string, int> skill_level_counts;
+    
+    for (const auto& job : target_jobs) {
+        auto job_skills = extractTechnologies(job.description);
+        
+        // Simple level estimation based on job title
+        double estimated_level = estimateSkillLevelFromJob(job);
+        
+        for (const auto& skill : job_skills) {
+            skill_frequency[skill]++;
+            skill_avg_level[skill] += estimated_level;
+            skill_level_counts[skill]++;
+        }
+    }
+    
+    // Convert to requirements
+    for (const auto& [skill, freq] : skill_frequency) {
+        if (freq >= target_jobs.size() * 0.3) { // Appears in at least 30% of target jobs
+            SkillRequirement req;
+            req.skill_name = skill;
+            req.frequency = static_cast<double>(freq) / target_jobs.size() * 100.0;
+            
+            if (skill_level_counts[skill] > 0) {
+                req.required_level = skill_avg_level[skill] / skill_level_counts[skill];
+            } else {
+                req.required_level = 3.0; // Default intermediate level
+            }
+            
+            req.importance = calculateSkillImportance(req.frequency, req.required_level);
+            plan.target_requirements.push_back(req);
+        }
+    }
+    
+    // Sort by importance
+    std::sort(plan.target_requirements.begin(), plan.target_requirements.end(),
+              [](const SkillRequirement& a, const SkillRequirement& b) {
+                  return a.importance > b.importance;
+              });
+}
+
+// ... (Additional helper functions would be implemented similarly)
 }
