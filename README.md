@@ -1,83 +1,57 @@
 Job Market API Explorer
-A full-stack web application that aggregates and analyzes job postings from multiple public job APIs, allowing users to search, filter, and visualize market trends by technology stack, location, salary, and more.
+=======================
 
-🚀 Features
-Multi-API Integration: Fetches live job postings from APIs like Adzuna, Indeed API, and GitHub Jobs API.
+Small C++17 console app that queries public job APIs, displays results, and prints basic stats (top companies, average minimum salary). Currently wired for Adzuna; a GitHub Jobs endpoint is included but that public API is deprecated.
 
-Advanced Search & Filtering: Filter jobs by title, location, salary range, company, and tech stack.
+Features
+--------
+- Query Adzuna with search term, location, and optional minimum salary filter.
+- Prints job details and a short summary (top companies, avg minimum salary).
+- JSON parsing via nlohmann/json; HTTP via libcurl; optional SQLite stubs exist but are not fully wired.
 
-Data Visualization: Charts showing most in-demand skills, average salary trends, and job posting volumes.
+Prerequisites
+-------------
+- CMake ≥ 3.12
+- C++17 compiler (tested with MinGW-w64 GCC 13) and Ninja or Make
+- libcurl (with OpenSSL) headers and libs
+- nlohmann/json is vendored at `third_party/json.hpp`
+- (Optional) SQLite3 dev package if you plan to use `Database.cpp`
 
-Real-Time Updates: Fetches the latest postings every time the user searches.
+Windows + MinGW quickstart with vcpkg
+-------------------------------------hell
+# 1) Install vcpkg
+git clone https://github.com/microsoft/vcpkg.git C:\tools\vcpkg
+C:\tools\vcpkg\bootstrap-vcpkg.bat
 
-Responsive UI: Built for mobile, tablet, and desktop.
+# 2) Install curl for MinGW (adjust triplet if needed)
+C:\tools\vcpkg\vcpkg install curl:x64-mingw-dynamic --host-triplet x64-mingw-dynamic
 
-🛠 Tech Stack
-Frontend: React.js + Tailwind CSS
-Backend: Node.js + Express
-Database: MongoDB (for caching and historical trend analysis)
-APIs Used:
-
-Adzuna API (Job search data)
-
-GitHub Jobs API (Developer jobs)
-
-[Optional] Indeed API
-Other Services:
-
-Chart.js for visualizations
-
-Axios for HTTP requests
-
-
-📦 Installation & Setup
-
-# Clone the repository
-git clone https://github.com/<your-username>/job-market-api-explorer.git
-
-# Navigate into the project
-cd job-market-api-explorer
-
-# Install dependencies for both frontend and backend
-cd client && npm install
-cd ../server && npm install
-
-# Create environment variables
-# .env file in /server should include:
-# ADZUNA_APP_ID=your_app_id
-# ADZUNA_APP_KEY=your_app_key
-# GITHUB_JOBS_API=https://jobs.github.com/positions.json
-
-# Run backend
-cd server
-npm run dev
-
-# Run frontend (in another terminal)
-cd client
-npm start
-
-
-📊 Example API Response (Adzuna)
-
+# (Optional) SQLite
+C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-dynamicConfiguration
+-------------
+Create `config.json` in the project root with your Adzuna credentials:
 {
-  "results": [
-    {
-      "title": "Software Engineer",
-      "company": { "display_name": "BMO Financial Group" },
-      "location": { "display_name": "Toronto, Ontario" },
-      "salary_min": 80000,
-      "salary_max": 120000,
-      "redirect_url": "https://adzuna.com/..."
-    }
-  ]
-}
+  "adzuna_app_id": "your_app_id",
+  "adzuna_app_key": "your_app_key"
+}Build
+-----
+From the repo root:hell
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake `
+  -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic
+cmake --build build --config Release- Omit `--config Release` if you’re using a single-config generator (e.g., Makefiles).
+- If you installed SQLite, also add `-DWITH_SQLITE=ON` and update CMake to `find_package(SQLite3 REQUIRED)` and link it.
 
-🎯 Future Improvements
-Add machine learning to classify jobs into broader categories.
+Run
+---hell
+.\build\job_explorer.exeEnter a search query, location, and minimum salary when prompted; results and stats print to the terminal.
 
-Implement email alerts for new job postings matching saved searches.
+Notes and Known Gaps
+--------------------
+- GitHub Jobs endpoint is deprecated; expect empty responses unless you swap in another API.
+- `Database.cpp` references SQLite but the default CMake only links curl/OpenSSL. Add SQLite find_package + linking if you enable it.
+- Some headers still use `model/` includes; ensure include paths match `src/model`.
 
-Integrate LinkedIn API (if available).
-
-🤝 Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+License
+-------
+MIT (if provided). Pull requests are welcome.
