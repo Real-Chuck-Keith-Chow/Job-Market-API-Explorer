@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "models/Job.h"
+#include "model/Job.h"
 
 class ApiClient {
 private:
