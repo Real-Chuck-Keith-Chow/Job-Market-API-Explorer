@@ -26,7 +26,7 @@ struct Job {
     std::string redirect_url;
     std::vector<std::string> technologies;
     std::string created;
-    
+
     Job() : salary_min(0), salary_max(0) {}
 };
 
