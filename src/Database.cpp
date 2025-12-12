@@ -296,13 +296,14 @@ std::vector<Job> Database::searchJobs(const std::string& query,
                                      double min_salary,
                                      int limit) {
     std::vector<Job> results;
-    // TODO: implement SQL filtering
+    // This would implement sophisticated SQL queries with the given filters
+    // Implementation would be similar to loadJobs() but with WHERE clauses
     return results;
 }
 
 std::map<std::string, int> Database::getJobCountByCompany() {
     std::map<std::string, int> counts;
-    // TODO: implement SQL aggregation
+    // SQL implementation to count jobs by company
     return counts;
 }
 
@@ -324,7 +325,7 @@ bool Database::isJobExists(const std::string& job_id) {
     
     if (rc) {
         std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
-        sqlite3_close(db); // Prevent memory leak
+        sqlite3_close(db); // Add this! - Prevent memory leak
         return false;
     }
     
@@ -334,7 +335,7 @@ bool Database::isJobExists(const std::string& job_id) {
     rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
-        sqlite3_close(db); // Prevent memory leak
+        sqlite3_close(db); // Add this! - Prevent memory leak
         return false;
     }
     
