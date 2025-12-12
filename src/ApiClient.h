@@ -17,14 +17,14 @@ private:
 public:
     ApiClient(const std::string& app_id, const std::string& app_key);
     
-    std::vector<Job> fetchFromAdzuna(const std::string& query = "", 
+    std::vector<Job> fetchFromAdzuna(const std::string& query = "",
                                     const std::string& location = "",
                                     int results_per_page = 50);
                                     
     std::vector<Job> fetchFromGitHubJobs(const std::string& description = "",
                                         const std::string& location = "");
     
-    std::vector<Job> searchJobs(const std::string& query, 
+    std::vector<Job> searchJobs(const std::string& query,
                                const std::string& location,
                                double min_salary = 0);
 };
