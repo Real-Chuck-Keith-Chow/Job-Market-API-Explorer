@@ -1,6 +1,3 @@
-Here’s the full current `src/JobParse.h`:
-
-```startLine:endLine:src/JobParse.h
 #ifndef JOBPARSER_H
 #define JOBPARSER_H
 
@@ -56,7 +53,9 @@ private:
     static double calculateSalaryMatchScore(const Job& job, double desired_salary);
 };
 
-// Add to public section of JobParser class:
+// Below are duplicate/loose declarations and structs sitting outside the class
+// (file needs cleanup to move them inside appropriate scopes and fix include paths)
+
 static std::vector<Job> rankJobsByRelevance(const std::vector<Job>& jobs,
                                            const std::string& user_skills,
                                            const std::string& preferred_location = "",
@@ -67,17 +66,6 @@ static std::vector<Job> findSimilarJobs(const Job& reference_job,
                                        const std::vector<Job>& all_jobs,
                                        int max_results = 10);
 
-private:
-// Add private helper functions:
-static double calculateTechnologyMatchScore(const Job& job,
-                                           const std::string& user_skills,
-                                           const std::vector<std::string>& preferred_technologies);
-
-static double calculateLocationMatchScore(const Job& job, const std::string& preferred_location);
-
-static double calculateSalaryMatchScore(const Job& job, double desired_salary);
-
-// Add new enums and structs (before class declaration)
 enum class AlertType {
     JOB_MATCH,
     SALARY_TREND,
@@ -111,27 +99,10 @@ struct JobAlert {
     JobAlert() : priority(5) {}
 };
 
-// Add to public section of JobParser class:
 static std::vector<JobAlert> generateJobAlerts(const std::vector<Job>& new_jobs,
                                               const UserPreferences& preferences,
                                               const std::vector<Job>& previous_jobs = {});
 
-private:
-// Add private helper functions:
-static std::vector<Job> findMatchingJobs(const std::vector<Job>& jobs, const UserPreferences& preferences);
-static double calculateJobMatchScore(const Job& job, const UserPreferences& preferences);
-static bool isExperienceCompatible(const std::string& job_level, const std::string& user_level);
-static int calculateAlertPriority(const Job& job, const UserPreferences& preferences);
-static std::vector<JobAlert> generateSalaryAlerts(const std::vector<Job>& new_jobs,
-                                                 const UserPreferences& preferences,
-                                                 const std::vector<Job>& previous_jobs);
-static std::vector<JobAlert> generateTechnologyAlerts(const std::vector<Job>& new_jobs,
-                                                     const UserPreferences& preferences);
-static std::vector<JobAlert> generateCompanyAlerts(const std::vector<Job>& new_jobs,
-                                                  const UserPreferences& preferences);
-static double calculateAverageSalary(const std::vector<Job>& jobs);
-
-// Add new enums for search criteria (before class declaration)
 enum class KeywordMatchType { ANY, ALL };
 enum class TechnologyMatchType { ANY, ALL };
 enum class LocationMatchType { EXACT, PARTIAL };
@@ -162,12 +133,9 @@ struct SearchCriteria {
     SortOrder sort_order = SortOrder::DESCENDING;
 };
 
-// Add to public section of JobParser class:
 static std::vector<Job> advancedJobSearch(const std::vector<Job>& jobs,
                                          const SearchCriteria& criteria);
 
-private:
-// Add private helper functions for search:
 static std::vector<Job> filterByKeywords(const std::vector<Job>& jobs,
                                         const std::vector<std::string>& keywords,
                                         KeywordMatchType match_type);
@@ -191,11 +159,10 @@ static std::vector<Job> filterByPostDate(const std::vector<Job>& jobs, int days_
 static std::vector<Job> sortJobs(const std::vector<Job>& jobs,
                                 SortBy sort_by, SortOrder sort_order);
 
-// Add prediction structures (before class declaration)
 struct TechnologyTrend {
     std::string technology;
     int current_demand;
-    double predicted_growth_rate; // percentage
+    double predicted_growth_rate;
     int predicted_demand_increase;
     double confidence_score;
 };
@@ -242,12 +209,9 @@ struct MarketPredictions {
                          historical_data_points(0), overall_confidence(0) {}
 };
 
-// Add to public section of JobParser class:
 static MarketPredictions predictMarketTrends(const std::vector<Job>& historical_jobs,
                                             int forecast_days = 30);
 
-private:
-// Add private prediction helper functions:
 static void analyzeHistoricalTrends(MarketPredictions& predictions,
                                    const std::vector<Job>& jobs);
 static void predictTechnologyTrends(MarketPredictions& predictions,
@@ -281,4 +245,3 @@ static double calculateTechConfidenceScore(const std::vector<int>& counts);
 static double calculateSalaryConfidenceScore(const std::vector<double>& salaries);
 
 #endif
-```
