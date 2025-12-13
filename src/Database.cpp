@@ -103,10 +103,12 @@ bool Database::storeJob(const Job& job) {
         return false;
     }
     
+    // Extract technologies
     auto technologies = JobParser::extractTechnologies(job.description);
     json tech_json = technologies;
     std::string tech_str = tech_json.dump();
     
+    // Categorize job
     std::string category = JobParser::categorizeJob(job);
     
     const char* sql = R"(
@@ -160,6 +162,7 @@ bool Database::storeJobs(const std::vector<Job>& jobs) {
         return false;
     }
     
+    // Begin transaction for better performance
     sqlite3_exec(db, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
     
     const char* sql = R"(
@@ -181,10 +184,12 @@ bool Database::storeJobs(const std::vector<Job>& jobs) {
     
     int success_count = 0;
     for (const auto& job : jobs) {
+        // Extract technologies
         auto technologies = JobParser::extractTechnologies(job.description);
         json tech_json = technologies;
         std::string tech_str = tech_json.dump();
         
+        // Categorize job
         std::string category = JobParser::categorizeJob(job);
         
         sqlite3_bind_text(stmt, 1, job.id.c_str(), -1, SQLITE_TRANSIENT);
@@ -265,6 +270,7 @@ void Database::updateCache() {
         job.description = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9));
         job.redirect_url = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 10));
         
+        // Parse technologies JSON
         const char* tech_json = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 11));
         if (tech_json) {
             try {
@@ -289,6 +295,7 @@ void Database::updateCache() {
 }
 
 // Additional method implementations would follow similar patterns...
+// [Rest of the methods would be implemented following the same SQLite pattern]
 
 std::vector<Job> Database::searchJobs(const std::string& query, 
                                      const std::string& location,
@@ -296,8 +303,10 @@ std::vector<Job> Database::searchJobs(const std::string& query,
                                      double min_salary,
                                      int limit) {
     std::vector<Job> results;
+    
     // This would implement sophisticated SQL queries with the given filters
     // Implementation would be similar to loadJobs() but with WHERE clauses
+    
     return results;
 }
 
