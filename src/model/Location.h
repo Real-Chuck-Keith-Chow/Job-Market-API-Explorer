@@ -26,7 +26,6 @@ struct Location {
           population(0),
           is_remote(false) {}
     
-    // Utility methods
     std::string getFullAddress() const {
         std::string address;
         if (!city.empty()) address += city;
@@ -36,14 +35,12 @@ struct Location {
     }
     
     std::string getCountryFlag() const {
-        // Simple emoji flag based on country code
         std::map<std::string, std::string> flag_map = {
             {"US", "🇺🇸"}, {"CA", "🇨🇦"}, {"GB", "🇬🇧"}, 
             {"DE", "🇩🇪"}, {"FR", "🇫🇷"}, {"AU", "🇦🇺"},
             {"IN", "🇮🇳"}, {"CN", "🇨🇳"}, {"JP", "🇯🇵"},
             {"BR", "🇧🇷"}, {"MX", "🇲🇽"}, {"ES", "🇪🇸"}
         };
-        
         auto it = flag_map.find(country_code);
         return it != flag_map.end() ? it->second : "🏳️";
     }
@@ -69,7 +66,6 @@ struct Location {
             return -1.0; // Invalid coordinates
         }
         
-        // Haversine formula for distance calculation
         double lat1 = latitude * M_PI / 180.0;
         double lon1 = longitude * M_PI / 180.0;
         double lat2 = other.latitude * M_PI / 180.0;
@@ -106,13 +102,10 @@ struct Location {
     static Location createFromString(const std::string& location_str) {
         Location loc;
         loc.display_name = location_str;
-        
-        // Simple parsing logic (can be enhanced)
         if (location_str.find("Remote") != std::string::npos ||
             location_str.find("remote") != std::string::npos) {
             loc.is_remote = true;
         }
-        
         return loc;
     }
 };
