@@ -56,7 +56,6 @@ struct Company {
     
     // Utility methods
     void addTechnology(const std::string& technology) {
-        // Check if technology already exists
         auto it = std::find(primary_technologies.begin(), primary_technologies.end(), technology);
         if (it == primary_technologies.end()) {
             primary_technologies.push_back(technology);
@@ -65,7 +64,6 @@ struct Company {
     }
     
     void addLocation(const std::string& location) {
-        // Check if location already exists
         auto it = std::find(locations.begin(), locations.end(), location);
         if (it == locations.end()) {
             locations.push_back(location);
@@ -82,7 +80,6 @@ struct Company {
                 max_salary = salary;
             }
             
-            // Update average salary
             double total_salary_sum = average_salary * total_job_count + salary;
             total_job_count++;
             average_salary = total_salary_sum / total_job_count;
@@ -91,8 +88,6 @@ struct Company {
     
     std::string getPrimaryLocation() const {
         if (location_counts.empty()) return "";
-        
-        // Find location with highest count
         auto max_it = std::max_element(
             location_counts.begin(), 
             location_counts.end(),
@@ -100,47 +95,37 @@ struct Company {
                 return a.second < b.second;
             }
         );
-        
         return max_it->first;
     }
     
     std::vector<std::string> getTopTechnologies(int count = 5) const {
         std::vector<std::pair<std::string, int>> tech_pairs(technology_counts.begin(), technology_counts.end());
-        
-        // Sort by count descending
         std::sort(tech_pairs.begin(), tech_pairs.end(),
             [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) {
                 return a.second > b.second;
             });
-        
-        // Extract top technologies
         std::vector<std::string> top_techs;
         for (int i = 0; i < std::min(count, static_cast<int>(tech_pairs.size())); i++) {
             top_techs.push_back(tech_pairs[i].first);
         }
-        
         return top_techs;
     }
     
     bool isTechCompany() const {
-        // Check if company primarily works with technology
         std::vector<std::string> tech_indicators = {
             "software", "technology", "tech", "IT", "computer", "data", "cloud",
             "ai", "machine learning", "developer", "engineering", "platform"
         };
-        
         std::string name_lower = normalized_name;
         std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
         std::string industry_lower = industry;
         std::transform(industry_lower.begin(), industry_lower.end(), industry_lower.begin(), ::tolower);
-        
         for (const auto& indicator : tech_indicators) {
             if (name_lower.find(indicator) != std::string::npos ||
                 industry_lower.find(indicator) != std::string::npos) {
                 return true;
             }
         }
-        
         return !primary_technologies.empty();
     }
     
@@ -159,17 +144,12 @@ struct Company {
 
 // Company comparison functions
 struct CompanyCompare {
-    // Compare by job count (descending)
     static bool byJobCount(const Company& a, const Company& b) {
         return a.total_job_count > b.total_job_count;
     }
-    
-    // Compare by average salary (descending)
     static bool byAverageSalary(const Company& a, const Company& b) {
         return a.average_salary > b.average_salary;
     }
-    
-    // Compare by technology count (descending)
     static bool byTechnologyDiversity(const Company& a, const Company& b) {
         return a.primary_technologies.size() > b.primary_technologies.size();
     }
