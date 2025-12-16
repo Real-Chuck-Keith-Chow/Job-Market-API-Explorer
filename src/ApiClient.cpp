@@ -133,12 +133,15 @@ std::vector<Job> ApiClient::searchJobs(const std::string& query,
                                      double min_salary) {
     std::vector<Job> all_jobs;
     
+    // Fetch from Adzuna
     auto adzuna_jobs = fetchFromAdzuna(query, location);
     all_jobs.insert(all_jobs.end(), adzuna_jobs.begin(), adzuna_jobs.end());
     
+    // Fetch from GitHub Jobs
     auto github_jobs = fetchFromGitHubJobs(query, location);
     all_jobs.insert(all_jobs.end(), github_jobs.begin(), github_jobs.end());
     
+    // Filter by minimum salary if specified
     if (min_salary > 0) {
         std::vector<Job> filtered_jobs;
         for (const auto& job : all_jobs) {
