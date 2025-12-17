@@ -53,12 +53,17 @@ std::vector<Job> ApiClient::fetchFromAdzuna(const std::string& query,
         << "&app_key=" << adzuna_app_key
         << "&results_per_page=" << results_per_page;
     
-    if (!query.empty()) {
-        url << "&what=" << curl_easy_escape(nullptr, query.c_str(), query.length());
-    }
-    
-    if (!location.empty()) {
-        url << "&where=" << curl_easy_escape(nullptr, location.c_str(), location.length());
+    CURL* curl = curl_easy_init();
+    if (curl) {
+        if (!query.empty()) {
+            char* esc = curl_easy_escape(curl, query.c_str(), static_cast<int>(query.size()));
+            if (esc) { url << "&what=" << esc; curl_free(esc); }
+        }
+        if (!location.empty()) {
+            char* esc = curl_easy_escape(curl, location.c_str(), static_cast<int>(location.size()));
+            if (esc) { url << "&where=" << esc; curl_free(esc); }
+        }
+        curl_easy_cleanup(curl);
     }
     
     std::string response = makeHttpRequest(url.str());
@@ -95,13 +100,19 @@ std::vector<Job> ApiClient::fetchFromGitHubJobs(const std::string& description,
     std::stringstream url;
     url << github_jobs_url << "?";
     
-    if (!description.empty()) {
-        url << "description=" << curl_easy_escape(nullptr, description.c_str(), description.length());
-    }
-    
-    if (!location.empty()) {
-        if (!description.empty()) url << "&";
-        url << "location=" << curl_easy_escape(nullptr, location.c_str(), location.length());
+    CURL* curl = curl_easy_init();
+    if (curl) {
+        if (!description.empty()) {
+            char* esc = curl_easy_escape(curl, description.c_str(), static_cast<int>(description.size()));
+            if (esc) { url << "description=" << esc; curl_free(esc); }
+        }
+        
+        if (!location.empty()) {
+            if (!description.empty()) url << "&";
+            char* esc = curl_easy_escape(curl, location.c_str(), static_cast<int>(location.size()));
+            if (esc) { url << "location=" << esc; curl_free(esc); }
+        }
+        curl_easy_cleanup(curl);
     }
     
     std::string response = makeHttpRequest(url.str());
