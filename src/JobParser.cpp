@@ -9,6 +9,7 @@ std::vector<std::string> JobParser::extractTechnologies(const std::string& descr
     std::vector<std::string> technologies;
     std::string desc_lower = description;
     std::transform(desc_lower.begin(), desc_lower.end(), desc_lower.begin(), ::tolower);
+    
     std::vector<std::string> common_techs = {
         "c++", "cpp", "python", "java", "javascript", "typescript",
         "react", "angular", "vue", "node.js", "express", "django",
@@ -20,6 +21,7 @@ std::vector<std::string> JobParser::extractTechnologies(const std::string& descr
         "html", "css", "sass", "less", "webpack", "babel",
         "rust", "go", "golang", "swift", "kotlin", "scala"
     };
+    
     for (const auto& tech : common_techs) {
         if (desc_lower.find(tech) != std::string::npos) {
             if (tech == "cpp" || tech == "c++") technologies.push_back("C++");
@@ -35,6 +37,7 @@ std::vector<std::string> JobParser::extractTechnologies(const std::string& descr
             }
         }
     }
+    
     std::sort(technologies.begin(), technologies.end());
     technologies.erase(std::unique(technologies.begin(), technologies.end()), technologies.end());
     return technologies;
@@ -44,20 +47,29 @@ std::string JobParser::categorizeJob(const Job& job) {
     std::string desc_lower = job.description;
     std::transform(desc_lower.begin(), desc_lower.end(), desc_lower.begin(), ::tolower);
     auto technologies = extractTechnologies(job.description);
+    
     if (std::find(technologies.begin(), technologies.end(), "React") != technologies.end() ||
         std::find(technologies.begin(), technologies.end(), "Angular") != technologies.end() ||
-        std::find(technologies.begin(), technologies.end(), "Vue") != technologies.end()) return "Frontend Development";
+        std::find(technologies.begin(), technologies.end(), "Vue") != technologies.end())
+        return "Frontend Development";
     if (std::find(technologies.begin(), technologies.end(), "Node.js") != technologies.end() ||
         std::find(technologies.begin(), technologies.end(), "Django") != technologies.end() ||
-        std::find(technologies.begin(), technologies.end(), "Spring") != technologies.end()) return "Backend Development";
+        std::find(technologies.begin(), technologies.end(), "Spring") != technologies.end())
+        return "Backend Development";
     if (std::find(technologies.begin(), technologies.end(), "Machine Learning") != technologies.end() ||
-        std::find(technologies.begin(), technologies.end(), "Data Science") != technologies.end()) return "Data Science";
+        std::find(technologies.begin(), technologies.end(), "Data Science") != technologies.end())
+        return "Data Science";
     if (std::find(technologies.begin(), technologies.end(), "AWS") != technologies.end() ||
         std::find(technologies.begin(), technologies.end(), "Azure") != technologies.end() ||
-        std::find(technologies.begin(), technologies.end(), "Docker") != technologies.end()) return "DevOps/Cloud";
-    if (std::find(technologies.begin(), technologies.end(), "C++") != technologies.end()) return "C++ Development";
-    if (std::find(technologies.begin(), technologies.end(), "Python") != technologies.end()) return "Python Development";
-    if (std::find(technologies.begin(), technologies.end(), "Java") != technologies.end()) return "Java Development";
+        std::find(technologies.begin(), technologies.end(), "Docker") != technologies.end())
+        return "DevOps/Cloud";
+    if (std::find(technologies.begin(), technologies.end(), "C++") != technologies.end())
+        return "C++ Development";
+    if (std::find(technologies.begin(), technologies.end(), "Python") != technologies.end())
+        return "Python Development";
+    if (std::find(technologies.begin(), technologies.end(), "Java") != technologies.end())
+        return "Java Development";
+    
     std::string title_lower = job.title;
     std::transform(title_lower.begin(), title_lower.end(), title_lower.begin(), ::tolower);
     if (title_lower.find("frontend") != std::string::npos) return "Frontend Development";
@@ -344,3 +356,5 @@ double JobParser::calculateSalaryMatchScore(const Job& job, double desired_salar
     if (salary_ratio >= 0.6) return 4.0;
     return 2.0;
 }
+
+
