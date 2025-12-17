@@ -4,14 +4,12 @@ project(JobMarketAPIExplorer)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find required packages
 find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(SQLite3 REQUIRED)
 
-# Include directories
 include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
-# Add executable
 add_executable(job_explorer
     src/main.cpp
     src/ApiClient.cpp
@@ -19,5 +17,8 @@ add_executable(job_explorer
     src/Database.cpp
 )
 
-# Link libraries
-target_link_libraries(job_explorer ${CURL_LIBRARIES} OpenSSL::SSL)
+target_link_libraries(job_explorer
+    ${CURL_LIBRARIES}
+    OpenSSL::SSL
+    SQLite::SQLite3
+)
