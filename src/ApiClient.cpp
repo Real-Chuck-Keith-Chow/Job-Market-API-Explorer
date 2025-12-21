@@ -2,13 +2,16 @@
 #include <curl/curl.h>
 #include <iostream>
 #include <sstream>
-#include "third_party/json.hpp"
+#include "json.hpp"
 
 using json = nlohmann::json;
 
-ApiClient::ApiClient(const std::string& app_id, const std::string& app_key) 
+ApiClient::ApiClient(const std::string& app_id, const std::string& app_key, 
+                     const std::string& github_url,
+                     bool enable_github) 
     : adzuna_app_id(app_id), adzuna_app_key(app_key),
-      github_jobs_url("https://jobs.github.com/positions.json") {
+      github_jobs_url(github_url.empty() ? "https://jobs.github.com/positions.json" : github_url),
+      enable_github_jobs(enable_github) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
@@ -44,7 +47,8 @@ std::string ApiClient::makeHttpRequest(const std::string& url) {
 
 std::vector<Job> ApiClient::fetchFromAdzuna(const std::string& query, 
                                           const std::string& location,
-                                          int results_per_page) {
+                                          int results_per_page,
+                                          double min_salary) {
     std::vector<Job> jobs;
     
     std::stringstream url;
@@ -65,6 +69,10 @@ std::vector<Job> ApiClient::fetchFromAdzuna(const std::string& query,
         }
         curl_easy_cleanup(curl);
     }
+
+    if (min_salary > 0) {
+        url << "&salary_min=" << static_cast<long long>(min_salary);
+    }
     
     std::string response = makeHttpRequest(url.str());
     
@@ -82,6 +90,7 @@ std::vector<Job> ApiClient::fetchFromAdzuna(const std::string& query,
                 job.salary_max = item.value("salary_max", 0.0);
                 job.redirect_url = item.value("redirect_url", "");
                 job.created = item.value("created", "");
+                job.description = item.value("description", "");
                 
                 jobs.push_back(job);
             }
@@ -145,12 +154,14 @@ std::vector<Job> ApiClient::searchJobs(const std::string& query,
     std::vector<Job> all_jobs;
     
     // Fetch from Adzuna
-    auto adzuna_jobs = fetchFromAdzuna(query, location);
+    auto adzuna_jobs = fetchFromAdzuna(query, location, 50, min_salary);
     all_jobs.insert(all_jobs.end(), adzuna_jobs.begin(), adzuna_jobs.end());
     
     // Fetch from GitHub Jobs
-    auto github_jobs = fetchFromGitHubJobs(query, location);
-    all_jobs.insert(all_jobs.end(), github_jobs.begin(), github_jobs.end());
+    if (enable_github_jobs) {
+        auto github_jobs = fetchFromGitHubJobs(query, location);
+        all_jobs.insert(all_jobs.end(), github_jobs.begin(), github_jobs.end());
+    }
     
     // Filter by minimum salary if specified
     if (min_salary > 0) {
