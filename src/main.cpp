@@ -3,7 +3,7 @@
 #include <fstream>
 #include <map>
 #include "ApiClient.h"
-#include "third_party/json.hpp"
+#include "json.hpp"
 
 using json = nlohmann::json;
 
@@ -31,6 +31,7 @@ void displayStatistics(const std::vector<Job>& jobs) {
     std::cout << "\n=== JOB MARKET STATISTICS ===" << std::endl;
     std::cout << "Total jobs found: " << jobs.size() << std::endl;
     
+    // Count jobs by company
     std::map<std::string, int> company_counts;
     double total_salary = 0;
     int salary_count = 0;
@@ -44,6 +45,7 @@ void displayStatistics(const std::vector<Job>& jobs) {
         }
     }
     
+    // Display top companies
     std::cout << "\nTop companies hiring:" << std::endl;
     int count = 0;
     for (const auto& [company, job_count] : company_counts) {
@@ -51,6 +53,7 @@ void displayStatistics(const std::vector<Job>& jobs) {
         std::cout << "  " << company << ": " << job_count << " jobs" << std::endl;
     }
     
+    // Display average salary
     if (salary_count > 0) {
         double avg_salary = total_salary / salary_count;
         std::cout << "Average minimum salary: $" << std::fixed << std::setprecision(0) 
@@ -59,6 +62,7 @@ void displayStatistics(const std::vector<Job>& jobs) {
 }
 
 int main() {
+    // Load configuration
     std::ifstream config_file("config.json");
     if (!config_file.is_open()) {
         std::cerr << "Error: Could not open config.json" << std::endl;
@@ -67,10 +71,37 @@ int main() {
     }
     
     json config;
-    config_file >> config;
+    try {
+        config_file >> config;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing config.json: " << e.what() << std::endl;
+        return 1;
+    }
+
+    auto require_string = [&](const std::string& key) -> std::string {
+        if (!config.contains(key) || !config[key].is_string()) {
+            throw std::runtime_error("Missing or invalid config key: " + key);
+        }
+        return config[key].get<std::string>();
+    };
+
+    std::string app_id;
+    std::string app_key;
+    std::string github_url = config.value("github_jobs_url", "");
+    bool enable_github = config.value("enable_github_jobs", false);
+
+    try {
+        app_id = require_string("adzuna_app_id");
+        app_key = require_string("adzuna_app_key");
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
     
-    ApiClient client(config["adzuna_app_id"], config["adzuna_app_key"]);
+    // Initialize API client
+    ApiClient client(app_id, app_key, github_url, enable_github);
     
+    // Interactive search
     std::string query, location;
     double min_salary = 0;
     
@@ -106,13 +137,16 @@ int main() {
     
     std::cout << "\nSearching for jobs..." << std::endl;
     
+    // Perform search
     auto jobs = client.searchJobs(query, location, min_salary);
     
+    // Display results
     std::cout << "\n=== SEARCH RESULTS ===" << std::endl;
     for (const auto& job : jobs) {
         displayJob(job);
     }
     
+    // Display statistics
     displayStatistics(jobs);
     
     return 0;
