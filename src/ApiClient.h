@@ -10,21 +10,25 @@ private:
     std::string adzuna_app_id;
     std::string adzuna_app_key;
     std::string github_jobs_url;
+    bool enable_github_jobs;
 
     static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* response);
     std::string makeHttpRequest(const std::string& url);
     
 public:
-    ApiClient(const std::string& app_id, const std::string& app_key);
+    ApiClient(const std::string& app_id, const std::string& app_key, 
+              const std::string& github_url = "https://jobs.github.com/positions.json",
+              bool enable_github = false);
     
-    std::vector<Job> fetchFromAdzuna(const std::string& query = "",
+    std::vector<Job> fetchFromAdzuna(const std::string& query = "", 
                                     const std::string& location = "",
-                                    int results_per_page = 50);
+                                    int results_per_page = 50,
+                                    double min_salary = 0.0);
                                     
     std::vector<Job> fetchFromGitHubJobs(const std::string& description = "",
                                         const std::string& location = "");
     
-    std::vector<Job> searchJobs(const std::string& query,
+    std::vector<Job> searchJobs(const std::string& query, 
                                const std::string& location,
                                double min_salary = 0);
 };
