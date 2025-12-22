@@ -1,60 +1,89 @@
-Job Market API Explorer
-=======================
+# 🚀 Job Market API Explorer (C++17)
 
-Small C++17 console app that queries public job APIs, displays results, and prints basic stats (top companies, average minimum salary). Currently wired for Adzuna; a GitHub Jobs endpoint is included but that public API is deprecated.
+Job Market API Explorer is a modern **C++17 console application** that queries public job listing APIs, displays structured job results, and computes basic market statistics such as **top hiring companies** and **average minimum salary**.
 
-Features
---------
-- Query Adzuna with search term, location, and optional minimum salary filter.
-- Prints job details and a short summary (top companies, avg minimum salary).
-- JSON parsing via nlohmann/json; HTTP via libcurl; optional SQLite stubs exist but are not fully wired.
+This project is designed to showcase **real-world C++ engineering skills**, including API integration, JSON parsing, networking, and CMake-based builds.
 
-Prerequisites
--------------
+---
+
+## ✨ Highlights
+
+- 🔌 Live job search via public REST APIs (Adzuna)
+- 📊 Aggregates results into useful market statistics
+- ⚙️ Modern C++17 with clean, modular design
+- 🧰 Industry-standard libraries (libcurl, nlohmann/json)
+- 🏗 Cross-platform build using CMake
+- 🗄 Optional SQLite persistence layer (scaffolded)
+
+---
+
+## 🧠 What This Project Demonstrates
+
+| Skill Area | Description |
+|-----------|-------------|
+| **C++17** | STL usage, RAII, modular architecture |
+| **Networking** | REST API requests via libcurl |
+| **Data Parsing** | JSON handling with nlohmann/json |
+| **Build Systems** | CMake configuration and toolchains |
+| **Dependency Management** | vcpkg + vendored headers |
+| **Extensibility** | Multi-API design & optional database layer |
+
+---
+
+## 🔍 Features
+
+- Search jobs by **keyword**, **location**, and **minimum salary**
+- Display formatted job listings in the terminal
+- Compute summary statistics:
+  - Top hiring companies
+  - Average minimum salary
+- Architecture supports multiple job APIs  
+  (GitHub Jobs stub included for demonstration)
+
+---
+
+## 🧰 Tech Stack
+
+- **Language:** C++17  
+- **Build System:** CMake (≥ 3.12)  
+- **HTTP Client:** libcurl (OpenSSL)  
+- **JSON Parsing:** nlohmann/json (vendored)  
+- **Database (optional):** SQLite3  
+
+---
+
+## 📦 Prerequisites
+
+- C++17-compatible compiler  
+  - Tested with MinGW-w64 GCC 13
 - CMake ≥ 3.12
-- C++17 compiler (tested with MinGW-w64 GCC 13) and Ninja or Make
-- libcurl (with OpenSSL) headers and libs
-- nlohmann/json is vendored at `third_party/json.hpp`
-- (Optional) SQLite3 dev package if you plan to use `Database.cpp`
+- Ninja or Make
+- libcurl development libraries
+- (Optional) SQLite3 development libraries
 
-Windows + MinGW quickstart with vcpkg
--------------------------------------hell
+---
+
+## 🪟 Windows (MinGW) Quick Start — vcpkg
+
+```bash
 # 1) Install vcpkg
 git clone https://github.com/microsoft/vcpkg.git C:\tools\vcpkg
 C:\tools\vcpkg\bootstrap-vcpkg.bat
 
-# 2) Install curl for MinGW (adjust triplet if needed)
+# 2) Install curl
 C:\tools\vcpkg\vcpkg install curl:x64-mingw-dynamic --host-triplet x64-mingw-dynamic
 
-# (Optional) SQLite
-C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-dynamicConfiguration
--------------
-Create `config.json` in the project root with your Adzuna credentials:
-{
-  "adzuna_app_id": "your_app_id",
-  "adzuna_app_key": "your_app_key",
-  "github_jobs_url": "https://jobs.github.com/positions.json",
-  "enable_github_jobs": false
-}Build
------
-From the repo root:hell
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release `
-  -DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake `
-  -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic `
-  -DWITH_SQLITE=ON   # Optional: enable database support
-cmake --build build --config Release
-# Omit --config Release if you’re using a single-config generator (e.g., Makefiles).- If you installed SQLite, add `-DWITH_SQLITE=ON` (SQLite is off by default).
+# (Optional) SQLite support
+C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-dynamic
 
-Run
----hell
-.\build\job_explorer.exeEnter a search query, location, and minimum salary when prompted; results and stats print to the terminal.
+---
 
-Notes and Known Gaps
---------------------
-- GitHub Jobs endpoint is deprecated; expect empty responses unless you swap in another API.
-- `Database.cpp` references SQLite but the default CMake only links curl/OpenSSL. Add SQLite find_package + linking if you enable it.
-- Some headers still use `model/` includes; ensure include paths match `src/model`.
+If you want next:
+- ✅ **Architecture diagram (ASCII or PNG)**
+- ✅ **“Resume-ready” project summary (2–3 lines)**
+- ✅ **Badges (C++, CMake, MIT, Windows)**
+- ✅ **GitHub profile pin description**
 
-License
--------
-MIT (if provided). Pull requests are welcome.
+Just tell me what you want to optimize for (internship, junior, or mid-level role).
+
+
