@@ -32,15 +32,18 @@ C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-
 Create `config.json` in the project root with your Adzuna credentials:
 {
   "adzuna_app_id": "your_app_id",
-  "adzuna_app_key": "your_app_key"
+  "adzuna_app_key": "your_app_key",
+  "github_jobs_url": "https://jobs.github.com/positions.json",
+  "enable_github_jobs": false
 }Build
 -----
 From the repo root:hell
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release `
   -DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake `
-  -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic
-cmake --build build --config Release- Omit `--config Release` if you’re using a single-config generator (e.g., Makefiles).
-- If you installed SQLite, also add `-DWITH_SQLITE=ON` and update CMake to `find_package(SQLite3 REQUIRED)` and link it.
+  -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic `
+  -DWITH_SQLITE=ON   # Optional: enable database support
+cmake --build build --config Release
+# Omit --config Release if you’re using a single-config generator (e.g., Makefiles).- If you installed SQLite, add `-DWITH_SQLITE=ON` (SQLite is off by default).
 
 Run
 ---hell
