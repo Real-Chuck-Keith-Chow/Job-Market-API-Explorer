@@ -50,53 +50,68 @@ std::vector<Job> ApiClient::fetchFromAdzuna(const std::string& query,
                                           int results_per_page,
                                           double min_salary) {
     std::vector<Job> jobs;
-    
-    std::stringstream url;
-    url << "https://api.adzuna.com/v1/api/jobs/ca/search/1?"
-        << "app_id=" << adzuna_app_id
-        << "&app_key=" << adzuna_app_key
-        << "&results_per_page=" << results_per_page;
-    
-    CURL* curl = curl_easy_init();
-    if (curl) {
-        if (!query.empty()) {
-            char* esc = curl_easy_escape(curl, query.c_str(), static_cast<int>(query.size()));
-            if (esc) { url << "&what=" << esc; curl_free(esc); }
+    // Simple pagination over a few pages without changing the public signature.
+    const int kMaxPages = 3;
+    std::string what_param;
+    std::string where_param;
+
+    // Pre-escape query/location once.
+    if (!query.empty() || !location.empty()) {
+        CURL* curl = curl_easy_init();
+        if (curl) {
+            if (!query.empty()) {
+                char* esc = curl_easy_escape(curl, query.c_str(), static_cast<int>(query.size()));
+                if (esc) { what_param = "&what=" + std::string(esc); curl_free(esc); }
+            }
+            if (!location.empty()) {
+                char* esc = curl_easy_escape(curl, location.c_str(), static_cast<int>(location.size()));
+                if (esc) { where_param = "&where=" + std::string(esc); curl_free(esc); }
+            }
+            curl_easy_cleanup(curl);
         }
-        if (!location.empty()) {
-            char* esc = curl_easy_escape(curl, location.c_str(), static_cast<int>(location.size()));
-            if (esc) { url << "&where=" << esc; curl_free(esc); }
-        }
-        curl_easy_cleanup(curl);
     }
 
-    if (min_salary > 0) {
-        url << "&salary_min=" << static_cast<long long>(min_salary);
-    }
-    
-    std::string response = makeHttpRequest(url.str());
-    
-    try {
-        json data = json::parse(response);
-        
-        if (data.contains("results")) {
-            for (const auto& item : data["results"]) {
-                Job job;
-                job.id = item.value("id", "");
-                job.title = item.value("title", "");
-                job.company.display_name = item.value("company", {}).value("display_name", "");
-                job.location.display_name = item.value("location", {}).value("display_name", "");
-                job.salary_min = item.value("salary_min", 0.0);
-                job.salary_max = item.value("salary_max", 0.0);
-                job.redirect_url = item.value("redirect_url", "");
-                job.created = item.value("created", "");
-                job.description = item.value("description", "");
-                
-                jobs.push_back(job);
-            }
+    for (int page = 1; page <= kMaxPages; ++page) {
+        std::stringstream url;
+        url << "https://api.adzuna.com/v1/api/jobs/ca/search/" << page << "?"
+            << "app_id=" << adzuna_app_id
+            << "&app_key=" << adzuna_app_key
+            << "&results_per_page=" << results_per_page
+            << what_param
+            << where_param;
+
+        if (min_salary > 0) {
+            url << "&salary_min=" << static_cast<long long>(min_salary);
         }
-    } catch (const std::exception& e) {
-        std::cerr << "Error parsing Adzuna API response: " << e.what() << std::endl;
+        
+        std::string response = makeHttpRequest(url.str());
+        std::size_t before = jobs.size();
+        
+        try {
+            json data = json::parse(response);
+            
+            if (data.contains("results")) {
+                for (const auto& item : data["results"]) {
+                    Job job;
+                    job.id = item.value("id", "");
+                    job.title = item.value("title", "");
+                    job.company.display_name = item.value("company", {}).value("display_name", "");
+                    job.location.display_name = item.value("location", {}).value("display_name", "");
+                    job.salary_min = item.value("salary_min", 0.0);
+                    job.salary_max = item.value("salary_max", 0.0);
+                    job.redirect_url = item.value("redirect_url", "");
+                    job.created = item.value("created", "");
+                    job.description = item.value("description", "");
+                    
+                    jobs.push_back(job);
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error parsing Adzuna API response: " << e.what() << std::endl;
+        }
+
+        // Stop if no new results came back.
+        if (jobs.size() == before) break;
     }
     
     return jobs;
