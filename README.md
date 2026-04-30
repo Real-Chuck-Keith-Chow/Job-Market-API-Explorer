@@ -78,12 +78,5 @@ C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-
 
 ---
 
-If you want next:
-- ✅ **Architecture diagram (ASCII or PNG)**
-- ✅ **“Resume-ready” project summary (2–3 lines)**
-- ✅ **Badges (C++, CMake, MIT, Windows)**
-- ✅ **GitHub profile pin description**
-
-Just tell me what you want to optimize for (internship, junior, or mid-level role).
 
 
