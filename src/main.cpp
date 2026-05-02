@@ -2,152 +2,139 @@
 #include <iomanip>
 #include <fstream>
 #include <map>
+#include <string>
+#include <vector>
+
 #include "ApiClient.h"
 #include "json.hpp"
 
 using json = nlohmann::json;
 
 void displayJob(const Job& job) {
-    std::cout << "Title: " << job.title << std::endl;
-    std::cout << "Company: " << job.company.display_name << std::endl;
-    std::cout << "Location: " << job.location.display_name << std::endl;
-    
+    std::cout << "Title: " << job.title << '\n';
+    std::cout << "Company: " << job.company.display_name << '\n';
+    std::cout << "Location: " << job.location.display_name << '\n';
+
     if (job.salary_min > 0 || job.salary_max > 0) {
-        std::cout << "Salary: $" << std::fixed << std::setprecision(0) 
-                  << job.salary_min << " - $" << job.salary_max << std::endl;
+        std::cout << "Salary: $"
+                  << std::fixed << std::setprecision(0)
+                  << job.salary_min << " - $" << job.salary_max << '\n';
     }
-    
-    std::cout << "URL: " << job.redirect_url << std::endl;
-    std::cout << "Posted: " << job.created << std::endl;
-    std::cout << "----------------------------------------" << std::endl;
+
+    std::cout << "URL: " << job.redirect_url << '\n';
+    std::cout << "Posted: " << job.created << '\n';
+    std::cout << "----------------------------------------\n";
 }
 
 void displayStatistics(const std::vector<Job>& jobs) {
     if (jobs.empty()) {
-        std::cout << "No jobs found." << std::endl;
+        std::cout << "No jobs found.\n";
         return;
     }
-    
-    std::cout << "\n=== JOB MARKET STATISTICS ===" << std::endl;
-    std::cout << "Total jobs found: " << jobs.size() << std::endl;
-    
-    // Count jobs by company
+
+    std::cout << "\n=== JOB MARKET STATISTICS ===\n";
+    std::cout << "Total jobs found: " << jobs.size() << '\n';
+
     std::map<std::string, int> company_counts;
-    double total_salary = 0;
+    double total_salary = 0.0;
     int salary_count = 0;
-    
+
     for (const auto& job : jobs) {
-        company_counts[job.company.display_name]++;
-        
+        if (!job.company.display_name.empty()) {
+            company_counts[job.company.display_name]++;
+        }
+
         if (job.salary_min > 0) {
             total_salary += job.salary_min;
             salary_count++;
         }
     }
-    
-    // Display top companies
-    std::cout << "\nTop companies hiring:" << std::endl;
-    int count = 0;
-    for (const auto& [company, job_count] : company_counts) {
-        if (count++ >= 5) break;
-        std::cout << "  " << company << ": " << job_count << " jobs" << std::endl;
+
+    std::cout << "\nCompanies found:\n";
+    int shown = 0;
+    for (const auto& [company, count] : company_counts) {
+        if (shown >= 5) break;
+        std::cout << "  " << company << ": " << count << " job(s)\n";
+        shown++;
     }
-    
-    // Display average salary
+
     if (salary_count > 0) {
-        double avg_salary = total_salary / salary_count;
-        std::cout << "Average minimum salary: $" << std::fixed << std::setprecision(0) 
-                  << avg_salary << std::endl;
+        std::cout << "Average minimum salary: $"
+                  << std::fixed << std::setprecision(0)
+                  << total_salary / salary_count << '\n';
     }
 }
 
 int main() {
-    // Load configuration
     std::ifstream config_file("config.json");
+
     if (!config_file.is_open()) {
-        std::cerr << "Error: Could not open config.json" << std::endl;
-        std::cerr << "Please create config.json with your API keys" << std::endl;
+        std::cerr << "Error: Could not open config.json\n";
+        std::cerr << "Create config.json with adzuna_app_id and adzuna_app_key.\n";
         return 1;
     }
-    
+
     json config;
+
     try {
         config_file >> config;
     } catch (const std::exception& e) {
-        std::cerr << "Error parsing config.json: " << e.what() << std::endl;
+        std::cerr << "Error parsing config.json: " << e.what() << '\n';
         return 1;
     }
 
-    auto require_string = [&](const std::string& key) -> std::string {
-        if (!config.contains(key) || !config[key].is_string()) {
-            throw std::runtime_error("Missing or invalid config key: " + key);
-        }
-        return config[key].get<std::string>();
-    };
-
-    std::string app_id;
-    std::string app_key;
-    std::string github_url = config.value("github_jobs_url", "");
-    bool enable_github = config.value("enable_github_jobs", false);
-
-    try {
-        app_id = require_string("adzuna_app_id");
-        app_key = require_string("adzuna_app_key");
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+    if (!config.contains("adzuna_app_id") || !config["adzuna_app_id"].is_string() ||
+        !config.contains("adzuna_app_key") || !config["adzuna_app_key"].is_string()) {
+        std::cerr << "Error: config.json must contain string values for:\n";
+        std::cerr << "  adzuna_app_id\n";
+        std::cerr << "  adzuna_app_key\n";
         return 1;
     }
-    
-    // Initialize API client
-    ApiClient client(app_id, app_key, github_url, enable_github);
-    
-    // Interactive search
-    std::string query, location;
-    double min_salary = 0;
-    
-    std::cout << "=== JOB MARKET API EXPLORER ===" << std::endl;
-    std::cout << "Enter search query (or press enter for all jobs): ";
-    std::getline(std::cin, query);
-    
-    std::cout << "Enter location (or press enter for all locations): ";
-    std::getline(std::cin, location);
-    
-    std::cout << "Enter minimum salary (0 for no filter): ";
+
+    std::string app_id = config["adzuna_app_id"];
+    std::string app_key = config["adzuna_app_key"];
+
+    ApiClient client(app_id, app_key);
+
+    std::string query;
+    std::string location;
     std::string salary_input;
+    double min_salary = 0.0;
+
+    std::cout << "=== JOB MARKET API EXPLORER ===\n";
+
+    std::cout << "Search keyword: ";
+    std::getline(std::cin, query);
+
+    std::cout << "Location: ";
+    std::getline(std::cin, location);
+
+    std::cout << "Minimum salary (press Enter for none): ";
     std::getline(std::cin, salary_input);
-    
+
     if (!salary_input.empty()) {
         try {
             min_salary = std::stod(salary_input);
             if (min_salary < 0) {
-                std::cout << "Warning: Negative salary converted to 0" << std::endl;
-                min_salary = 0;
+                min_salary = 0.0;
             }
-            if (min_salary > 1000000) {
-                std::cout << "Warning: Salary capped at 1,000,000" << std::endl;
-                min_salary = 1000000;
-            }
-        } catch (const std::exception& e) {
-            std::cout << "Invalid salary input '" << salary_input << "'. Using 0." << std::endl;
-            min_salary = 0;
+        } catch (...) {
+            std::cout << "Invalid salary. Using 0.\n";
+            min_salary = 0.0;
         }
-    } else {
-        min_salary = 0;
     }
-    
-    std::cout << "\nSearching for jobs..." << std::endl;
-    
-    // Perform search
-    auto jobs = client.searchJobs(query, location, min_salary);
-    
-    // Display results
-    std::cout << "\n=== SEARCH RESULTS ===" << std::endl;
+
+    std::cout << "\nSearching jobs...\n";
+
+    std::vector<Job> jobs = client.searchJobs(query, location, min_salary);
+
+    std::cout << "\n=== SEARCH RESULTS ===\n";
+
     for (const auto& job : jobs) {
         displayJob(job);
     }
-    
-    // Display statistics
+
     displayStatistics(jobs);
-    
+
     return 0;
 }
