@@ -2,6 +2,8 @@
 build/
 bin/
 obj/
+
+# Compiled files
 *.o
 *.so
 *.a
@@ -34,7 +36,7 @@ logs/
 debug/
 release/
 
-# Dependency files
+# Dependencies
 deps/
 third_party/downloads/
 
@@ -46,7 +48,7 @@ Makefile
 *.cmake
 !CMakeLists.txt
 
-# Coverage reports
+# Coverage
 *.gcda
 *.gcno
 *.gcov
@@ -55,14 +57,13 @@ Makefile
 *.prof
 *.gprof
 
-# Backup files
+# Backup / temp
 *.bak
 *.backup
-
-# Temporary files
 *.tmp
 temp/
 
-# User-specific config (optional)
+# Config (IMPORTANT)
+config.json
 config.json.user
 *.local
