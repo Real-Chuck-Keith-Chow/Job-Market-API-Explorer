@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
-
+#include "JobParser.h"
 #include "ApiClient.h"
 #include "json.hpp"
 
@@ -127,6 +127,14 @@ int main() {
     std::cout << "\nSearching jobs...\n";
 
     std::vector<Job> jobs = client.searchJobs(query, location, min_salary);
+    std::string remote_only;
+
+    std::cout << "Show remote jobs only? (y/n): ";
+    std::getline(std::cin, remote_only);
+
+if (remote_only == "y" || remote_only == "Y") {
+    jobs = JobParser::filterRemoteJobs(jobs);
+}
 
     std::cout << "\n=== SEARCH RESULTS ===\n";
 
