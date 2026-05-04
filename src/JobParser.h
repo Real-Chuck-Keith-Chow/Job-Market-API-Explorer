@@ -26,6 +26,9 @@ public:
     static std::vector<Job> filterByTechnology(const std::vector<Job>& jobs,
                                                const std::string& technology);
 
+    // ✅ NEW FUNCTION
+    static std::vector<Job> filterRemoteJobs(const std::vector<Job>& jobs);
+
     static std::map<std::string, int> analyzeTechnologyTrends(const std::vector<Job>& jobs);
 
     static std::string normalizeCompanyName(const std::string& company_name);
