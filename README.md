@@ -1,82 +1,81 @@
 # 🚀 Job Market API Explorer (C++17)
 
-Job Market API Explorer is a modern **C++17 console application** that queries public job listing APIs, displays structured job results, and computes basic market statistics such as **top hiring companies** and **average minimum salary**.
+A clean, modern **C++17 console application** that fetches real job listings from the **Adzuna API**, displays structured results, and provides simple market insights.
 
-This project is designed to showcase **real-world C++ engineering skills**, including API integration, JSON parsing, networking, and CMake-based builds.
+This project focuses on **practical C++ engineering**, including HTTP requests, JSON parsing, modular design, and lightweight data persistence.
 
 ---
 
 ## ✨ Highlights
 
-- 🔌 Live job search via public REST APIs (Adzuna)
-- 📊 Aggregates results into useful market statistics
-- ⚙️ Modern C++17 with clean, modular design
-- 🧰 Industry-standard libraries (libcurl, nlohmann/json)
-- 🏗 Cross-platform build using CMake
-- 🗄 Optional SQLite persistence layer (scaffolded)
+- 🔌 Live job search via Adzuna REST API  
+- 📊 Basic market statistics (companies, salary trends)  
+- ⚙️ Clean, simplified C++17 architecture  
+- 🧰 Uses libcurl + nlohmann/json  
+- 🏗 Works with both **CMake** and **Makefile**  
+- 🗄 SQLite storage layer (basic, optional)
 
 ---
 
 ## 🧠 What This Project Demonstrates
 
 | Skill Area | Description |
-|-----------|-------------|
-| **C++17** | STL usage, RAII, modular architecture |
-| **Networking** | REST API requests via libcurl |
-| **Data Parsing** | JSON handling with nlohmann/json |
-| **Build Systems** | CMake configuration and toolchains |
-| **Dependency Management** | vcpkg + vendored headers |
-| **Extensibility** | Multi-API design & optional database layer |
+|----------|------------|
+| C++17 | STL, RAII, modular design |
+| Networking | HTTP requests using libcurl |
+| Data Parsing | JSON parsing with nlohmann/json |
+| Build Systems | CMake + Makefile support |
+| Databases | Basic SQLite integration |
+| Code Quality | Simplified, maintainable structure |
 
 ---
 
 ## 🔍 Features
 
-- Search jobs by **keyword**, **location**, and **minimum salary**
-- Display formatted job listings in the terminal
-- Compute summary statistics:
+- Search jobs by:
+  - Keyword
+  - Location
+  - Minimum salary
+
+- Display:
+  - Job title
+  - Company
+  - Location
+  - Salary range
+  - Posting date
+
+- Statistics:
   - Top hiring companies
   - Average minimum salary
-- Architecture supports multiple job APIs  
-  (GitHub Jobs stub included for demonstration)
+
+---
+
+## ⚠️ Notes
+
+- GitHub Jobs API was removed (service is discontinued)
+- Codebase intentionally simplified (no over-engineering)
+- Database layer is minimal (can be extended)
 
 ---
 
 ## 🧰 Tech Stack
 
 - **Language:** C++17  
-- **Build System:** CMake (≥ 3.12)  
-- **HTTP Client:** libcurl (OpenSSL)  
-- **JSON Parsing:** nlohmann/json (vendored)  
-- **Database (optional):** SQLite3  
+- **HTTP Client:** libcurl  
+- **JSON:** nlohmann/json (header-only)  
+- **Database:** SQLite3  
+- **Build Systems:** CMake + Makefile  
 
 ---
 
 ## 📦 Prerequisites
 
-- C++17-compatible compiler  
-  - Tested with MinGW-w64 GCC 13
-- CMake ≥ 3.12
-- Ninja or Make
-- libcurl development libraries
-- (Optional) SQLite3 development libraries
+- C++17 compiler (GCC / Clang / MSVC)
+- libcurl
+- SQLite3
+- CMake (optional)
 
----
-
-## 🪟 Windows (MinGW) Quick Start — vcpkg
+### Linux (Ubuntu)
 
 ```bash
-# 1) Install vcpkg
-git clone https://github.com/microsoft/vcpkg.git C:\tools\vcpkg
-C:\tools\vcpkg\bootstrap-vcpkg.bat
-
-# 2) Install curl
-C:\tools\vcpkg\vcpkg install curl:x64-mingw-dynamic --host-triplet x64-mingw-dynamic
-
-# (Optional) SQLite support
-C:\tools\vcpkg\vcpkg install sqlite3:x64-mingw-dynamic --host-triplet x64-mingw-dynamic
-
----
-
-
-
+sudo apt install build-essential libcurl4-openssl-dev libsqlite3-dev
