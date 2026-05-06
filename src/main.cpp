@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include "JobParser.h"
 #include "ApiClient.h"
 #include "json.hpp"
@@ -52,8 +53,10 @@ void displayStatistics(const std::vector<Job>& jobs) {
 
     std::cout << "\nCompanies found:\n";
     int shown = 0;
+
     for (const auto& [company, count] : company_counts) {
         if (shown >= 5) break;
+
         std::cout << "  " << company << ": " << count << " job(s)\n";
         shown++;
     }
@@ -99,7 +102,11 @@ int main() {
     std::string query;
     std::string location;
     std::string salary_input;
+    std::string pages_input;
+    std::string remote_only;
+
     double min_salary = 0.0;
+    int max_pages = 1;
 
     std::cout << "=== JOB MARKET API EXPLORER ===\n";
 
@@ -115,6 +122,7 @@ int main() {
     if (!salary_input.empty()) {
         try {
             min_salary = std::stod(salary_input);
+
             if (min_salary < 0) {
                 min_salary = 0.0;
             }
@@ -124,17 +132,36 @@ int main() {
         }
     }
 
-    std::cout << "\nSearching jobs...\n";
+    std::cout << "How many pages to fetch? (1-5, press Enter for 1): ";
+    std::getline(std::cin, pages_input);
 
-    std::vector<Job> jobs = client.searchJobs(query, location, min_salary);
-    std::string remote_only;
+    if (!pages_input.empty()) {
+        try {
+            max_pages = std::stoi(pages_input);
+
+            if (max_pages < 1) {
+                max_pages = 1;
+            }
+
+            if (max_pages > 5) {
+                max_pages = 5;
+            }
+        } catch (...) {
+            std::cout << "Invalid page count. Using 1.\n";
+            max_pages = 1;
+        }
+    }
 
     std::cout << "Show remote jobs only? (y/n): ";
     std::getline(std::cin, remote_only);
 
-if (remote_only == "y" || remote_only == "Y") {
-    jobs = JobParser::filterRemoteJobs(jobs);
-}
+    std::cout << "\nSearching jobs...\n";
+
+    std::vector<Job> jobs = client.searchJobs(query, location, min_salary, max_pages);
+
+    if (remote_only == "y" || remote_only == "Y") {
+        jobs = JobParser::filterRemoteJobs(jobs);
+    }
 
     std::cout << "\n=== SEARCH RESULTS ===\n";
 
